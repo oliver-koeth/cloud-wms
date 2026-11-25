@@ -33,6 +33,9 @@ const message = ref('')
 const messageIsError = ref(false)
 const submittedOrder = ref<IngestedOrder>()
 
+const canSeeTasks = computed(() =>
+  !!user.value?.roles?.some((role) => ['WMS Picker', 'WMS Supervisor', 'WMS Dispatch', 'System Manager'].includes(role)),
+)
 const isSupervisor = computed(() => !!user.value?.roles?.some((role) => ['WMS Supervisor', 'System Manager'].includes(role)))
 const activeTasks = computed(() => listing.value.active.filter((task) => task.status !== 'dispatched'))
 const selectedTask = computed(() => listing.value.active.find((task) => task.pick_list === selectedPickList.value))
@@ -50,6 +53,10 @@ function notify(text: string, isError = false) {
 }
 
 async function refresh() {
+  if (!canSeeTasks.value) {
+    listing.value = { claimable: [], active: [] }
+    return
+  }
   try {
     listing.value = await listTasks()
   } catch (error) {
@@ -84,6 +91,7 @@ function openTask(task: PickTask, screen: Screen) {
 }
 
 async function authenticated(session: SessionUser) {
+  notify('')
   user.value = { ...session, roles: await getRoles().catch(() => []) }
   await refresh()
 }
@@ -140,6 +148,7 @@ function created(order: IngestedOrder) {
 async function signOut() {
   try { await logout() } catch { /* The local browser state still needs clearing. */ }
   user.value = null
+  notify('')
   listing.value = { claimable: [], active: [] }
   activeScreen.value = 'operations'
 }
