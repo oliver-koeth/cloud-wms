@@ -30,7 +30,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Event Type",
-   "options": "Order Received\nTask Released\nTask Claimed\nTask Assigned\nTask Released To Queue\nLocation Scanned\nItem Scanned\nPick Confirmed\nShort Pick\nTask Completed\nTask Cancelled\nDelivery Created\nDelivery Submitted\nInventory Corrected",
+   "options": "Order Received\nTask Released\nTask Claimed\nTask Assigned\nTask Released To Queue\nLocation Scanned\nItem Scanned\nPick Confirmed\nShort Pick\nShort Pick Approved\nTask Completed\nTask Cancelled\nDelivery Created\nDelivery Submitted\nInventory Corrected",
    "read_only": 1,
    "reqd": 1
   },

@@ -2,29 +2,50 @@ export type Screen = 'operations' | 'create-order' | 'pick' | 'qa' | 'dispatch'
 
 export type TaskStatus = 'available' | 'claimed' | 'picking' | 'qa_required' | 'ready_to_dispatch' | 'dispatched'
 
-export interface PickLine {
-  itemCode: string
-  itemName: string
+export interface TaskLine {
+  row: string
+  item_code: string
+  item_name: string | null
   location: string
-  requestedQty: number
-  pickedQty: number
-  shortageReason?: string
+  location_barcode: string | null
+  uom: string | null
+  requested_qty: number
+  picked_qty: number
+  location_confirmed: boolean
+  shortage_state: 'Pending' | 'Approved' | null
+  shortage_reason: string | null
 }
 
-export interface WmsTask {
-  id: string
-  salesOrder: string
-  customer: string
-  createdAt: string
+export interface PickTask {
+  pick_list: string
+  sales_order: string | null
+  customer: string | null
   status: TaskStatus
-  claimedBy?: string
-  lines: PickLine[]
-  qaApproved?: boolean
+  docstatus: number
+  assignees: string[]
+  mine: boolean
+  lines: TaskLine[]
+}
+
+export interface ClaimableOrder {
+  sales_order: string
+  customer: string
+  delivery_date: string | null
+  warehouse: string | null
+  status: 'available'
+  remaining_qty: number
+  lines: number
+}
+
+export interface TaskListing {
+  claimable: ClaimableOrder[]
+  active: PickTask[]
 }
 
 export interface SessionUser {
   fullName: string
   email: string
+  roles?: string[]
 }
 
 export interface FormOptions {

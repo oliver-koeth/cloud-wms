@@ -12,7 +12,7 @@ Warehouse operator
         │
         ▼
 Current Cloud WMS UI (this repo: ui/)
-ERPNext session login • submitted Sales Order intake • local prototype workboard
+ERPNext session login • Sales Order intake • Pick List workboard
         │ standard ERPNext REST API today
         ▼
 ERPNext (upstream, unchanged)
@@ -122,11 +122,10 @@ master data comes from `make demo-data`, never from the browser. The UI has a ca
 `BarcodeDetector` when the browser supports it, plus a manual-entry fallback.
 
 The browser holds only the ERPNext session cookie; it never receives an
-Administrator API key. The UI's pick, QA and dispatch task state is deliberately
-stored in browser local storage and visibly labelled as a prototype. It must be
-replaced by server-side, permission-checked custom Frappe API endpoints before
-any operational use. In particular, the current mock dispatch must not be
-represented as a submitted ERPNext `Delivery Note`.
+Administrator API key. Pick tasks are real ERPNext `Pick List` documents managed
+by `cloud_wms.api.tasks.*` (see below). Dispatch is not implemented yet; the UI
+shows it read-only and must not represent it as a submitted ERPNext
+`Delivery Note`.
 
 ### Direct ERPNext calls allowed in the prototype
 
@@ -138,4 +137,25 @@ represented as a submitted ERPNext `Delivery Note`.
 Orders enter only through `POST /api/method/cloud_wms.api.orders.ingest` (role
 `WMS Intake`; requires an `idempotency_key`; duplicate `source` + `external_order_id`
 returns the existing order). No browser call may create a Pick List, Delivery Note, stock transaction or
-workflow/audit record. Those operations belong to the future custom Frappe API.
+workflow/audit record directly; those operations go through the custom Frappe API.
+
+### Pick task API (`cloud_wms.api.tasks`)
+
+A pick task *is* a Pick List. A Sales Order is claimable while it is submitted,
+has remaining quantity and no active Pick List. All endpoints are role-checked
+(Picker or Supervisor unless noted), and mutations require an `idempotency_key`.
+
+| Endpoint | Effect |
+| --- | --- |
+| `list_tasks` (GET; Picker, Supervisor, Dispatch) | `{claimable, active}`; pickers see only their own claims |
+| `get` (GET) | One task |
+| `claim` | Creates a draft Pick List (scan mode, manual picking), assigns it via ToDo; only a Supervisor may assign someone else |
+| `release` | Deletes the draft; a picker may release only before any scan |
+| `confirm_location`, `confirm_pick` | Validate location barcode, item barcode and quantity (no overpick) |
+| `record_shortage` | Marks a line Pending; blocks completion until approved |
+| `approve_shortage` (Supervisor) | Reduces the line to the picked quantity, or removes it; an empty Pick List is deleted |
+| `complete` | Requires every line fully picked or approved short; submits the Pick List and creates stock reservations when enabled |
+
+Per-line state lives in custom fields on `Pick List Item`
+(`cloud_wms_location_confirmed`, `cloud_wms_shortage_state`,
+`cloud_wms_shortage_reason`). Every step records an immutable `WMS Task Event`.

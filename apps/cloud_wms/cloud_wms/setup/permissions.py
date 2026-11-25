@@ -7,6 +7,10 @@ READ = ("read",)
 WRITE = ("read", "write", "create")
 SUBMIT = ("read", "write", "create", "submit")
 CANCEL = ("read", "write", "create", "submit", "cancel")
+# Deleting a draft Pick List is how a claimed task returns to the queue; ERPNext refuses to delete
+# submitted documents, so this never removes a completed pick.
+SUBMIT_DELETE = (*SUBMIT, "delete")
+CANCEL_DELETE = (*CANCEL, "delete")
 
 # Standard ERPNext roles are left untouched except that the first custom rule for a doctype freezes
 # its stock DocPerm rows into Custom DocPerm (Frappe behaviour), which this app then extends.
@@ -18,9 +22,9 @@ MATRIX = {
 		"WMS Supervisor": READ,
 	},
 	"Pick List": {
-		"WMS Picker": SUBMIT,
+		"WMS Picker": SUBMIT_DELETE,
 		"WMS Dispatch": READ,
-		"WMS Supervisor": CANCEL,
+		"WMS Supervisor": CANCEL_DELETE,
 	},
 	"Stock Reservation Entry": {
 		"WMS Picker": SUBMIT,

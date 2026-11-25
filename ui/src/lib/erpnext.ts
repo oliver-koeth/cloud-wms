@@ -1,4 +1,4 @@
-import type { FormOptions, IngestOrderInput, IngestedOrder, SessionUser } from '../types'
+import type { FormOptions, IngestOrderInput, IngestedOrder, PickTask, SessionUser, TaskListing } from '../types'
 
 interface WmsError {
   code?: string
@@ -107,3 +107,45 @@ export async function ingestOrder(input: IngestOrderInput, idempotencyKey: strin
   })
   return result.message.data
 }
+
+const taskMethod = (name: string) => `/api/method/cloud_wms.api.tasks.${name}`
+
+async function readTasks<T>(name: string, params: Record<string, string> = {}): Promise<T> {
+  const query = new URLSearchParams(params).toString()
+  const result = await request<{ message: { data: T } }>(`${taskMethod(name)}${query ? `?${query}` : ''}`)
+  return result.message.data
+}
+
+async function actOnTask<T = PickTask>(name: string, body: Record<string, unknown>): Promise<T> {
+  const result = await request<{ message: { data: T } }>(taskMethod(name), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idempotency_key: crypto.randomUUID(), ...body }),
+  })
+  return result.message.data
+}
+
+export async function getRoles(): Promise<string[]> {
+  const result = await request<{ message: string[] }>('/api/method/frappe.core.doctype.user.user.get_roles')
+  return result.message
+}
+
+export const listTasks = () => readTasks<TaskListing>('list_tasks')
+
+export const claimTask = (salesOrder: string) => actOnTask('claim', { sales_order: salesOrder })
+
+export const releaseTask = (pickList: string) => actOnTask<{ released: boolean }>('release', { pick_list: pickList })
+
+export const confirmLocation = (pickList: string, row: string, barcode: string) =>
+  actOnTask('confirm_location', { pick_list: pickList, row, barcode })
+
+export const confirmPick = (pickList: string, row: string, itemBarcode: string, qty = 1) =>
+  actOnTask('confirm_pick', { pick_list: pickList, row, item_barcode: itemBarcode, qty })
+
+export const recordShortage = (pickList: string, row: string, reason: string) =>
+  actOnTask('record_shortage', { pick_list: pickList, row, reason })
+
+export const approveShortage = (pickList: string, row: string) =>
+  actOnTask<PickTask | { status: 'cancelled' }>('approve_shortage', { pick_list: pickList, row })
+
+export const completeTask = (pickList: string) => actOnTask('complete', { pick_list: pickList })

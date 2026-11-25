@@ -95,20 +95,25 @@ The first UI slice includes:
 - Order intake that submits a real **ERPNext Sales Order** (multiple lines, optional
   external reference) through the idempotent `cloud_wms.api.orders.ingest`
   endpoint. `make demo-data` provides the demo Customer, Item and stock.
-- Self-claimable pick tasks, a camera-scanner interface with a manual fallback,
-  and local task state persisted in the browser.
-- Mandatory QA approval for short picks and a mock-only dispatch label/step.
+- A live pick queue backed by **ERPNext Pick Lists**: claiming an order creates a
+  draft Pick List assigned to the claimer (a Picker self-claims; a Supervisor
+  claims or assigns). Scan location, scan item and quantity, then submit the
+  Pick List, which reserves stock when stock reservation is enabled.
+- A camera-scanner interface with a manual fallback.
+- Short picks: the picker reports a shortage and a Supervisor approves it
+  before the Pick List can be submitted. Approval reduces the line to the
+  picked quantity (or removes it if nothing was picked).
+- Dispatch is a read-only placeholder: the Delivery Note is not wired yet.
 
-The order intake is real. Pick, QA and dispatch states are intentionally
-labelled as local prototype workflow data until the custom Frappe API is
-implemented. Build and test with `make ui-build` and `make ui-test`.
+Intake and picking are real ERPNext documents, enforced server-side by
+`cloud_wms.api.tasks.*`. Dispatch is still not implemented. Build and test with
+`make ui-build` and `make ui-test`; run the backend tests with `make app-test`.
 
 ### Prototype capability boundary
 
 | Available now | Deliberately not implemented yet |
 | --- | --- |
-| ERPNext session login; master-data reads; submitted Sales Order intake via the WMS API (idempotent, de-duplicated by source + external ID, audited) | External-order connector; ERPNext Pick List creation/assignment; stock reservation; persistent QA state; Delivery Note submission; stock-ledger posting |
-| Local workboard, self-claim, camera/manual scan interaction, short-pick QA and mock dispatch | Production workflow API, idempotency, server-side permissions for WMS operations and carrier integration |
+| ERPNext session login; master-data reads; submitted Sales Order intake; Pick List creation on claim, assignment, scan confirmation, short-pick approval, submission and stock reservation (all idempotent, audited, role-checked) | External-order connector; Delivery Note submission and partial delivery; stock-ledger posting; carrier integration |
 
 The camera scanner asks the browser for camera permission and uses the browser's
 `BarcodeDetector` capability where available. A scanner-input/manual-entry
