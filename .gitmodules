@@ -1,0 +1,3 @@
+[submodule "vendor/erpnext"]
+	path = vendor/erpnext
+	url = https://github.com/frappe/erpnext.git

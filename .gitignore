@@ -1,0 +1,19 @@
+# Locally checked-out runtime support; never application source.
+.runtime/
+
+# Local environment settings and Docker Desktop state.
+.env
+.DS_Store
+
+# Future UI dependencies and build outputs.
+ui/node_modules/
+ui/dist/
+
+# Test and editor artifacts.
+.pytest_cache/
+coverage/
+.idea/
+.vscode/
+
+# graphify-axet
+.graphify/
