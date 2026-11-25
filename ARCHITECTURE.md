@@ -93,7 +93,8 @@ idempotency service commits mid-request.
 - Actions that may be retried by a scanner or network client need an idempotency
   key recorded server-side.
 - Keep ERPNext canonical. Do not create a parallel inventory ledger in the UI or
-  WMS app.
+  WMS app. [DATAMODEL.md](DATAMODEL.md) lists the ERPNext tables, the WMS custom
+  fields and doctypes, and the proposed admin screens.
 - One tenant should eventually map to an isolated Frappe site/database. ERPNext
   `Company` is not a replacement for SaaS tenant isolation.
 

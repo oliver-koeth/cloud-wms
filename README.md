@@ -10,6 +10,7 @@ The first specified journey is the external order flow:
 `external sales order → ERPNext Pick List → WMS picking UI → Delivery Note → stock update`
 
 Its requirements are in [spec/external-order-flow.md](spec/external-order-flow.md).
+The tables it uses, and the proposed admin screens, are in [DATAMODEL.md](DATAMODEL.md).
 
 ## What is here today
 
