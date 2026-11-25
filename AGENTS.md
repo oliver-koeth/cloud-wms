@@ -40,8 +40,9 @@ local development. Use `make ui-install`, `make ui-dev`, `make ui-test` and
   Vite `/api` proxy. Never put an ERPNext Administrator password or API key in
   frontend code.
 - The implemented ERPNext integration is deliberately limited to session login,
-  read access to `Company`, `Customer`, `Item` and `Warehouse`, optional local
-  demo master-data creation, and creation of an unsubmitted `Sales Order`.
+  read access to `Company`, `Customer`, `Item` and `Warehouse`, and order intake
+  through `cloud_wms.api.orders.ingest` (submitted `Sales Order`; the UI generates
+  one idempotency key per distinct submission).
 - The workboard, self-claim, pick confirmation, QA approval and mock dispatch
   are browser-local prototype state. They are not Pick Lists, Delivery Notes,
   reservations or stock movements, and must not be described as such.

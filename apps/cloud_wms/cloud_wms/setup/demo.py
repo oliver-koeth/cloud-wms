@@ -7,6 +7,7 @@ DEMO_PASSWORD = "admin"
 DEMO_ITEM = "WMS-DEMO-TOTE"
 DEMO_QTY = 20
 DEMO_RATE = 25
+DEMO_CUSTOMER = "WMS Demo Customer"
 
 DEMO_USERS = {
 	"sales@cloud-wms.local": {
@@ -54,6 +55,7 @@ def setup_all():
 	company = get_company()
 	locations = setup_locations(company)
 	setup_stock(company, locations)
+	setup_customer()
 	frappe.db.commit()
 	return {"company": company, "locations": locations}
 
@@ -110,6 +112,21 @@ def setup_locations(company):
 		).insert(ignore_permissions=True)
 		names[warehouse_name] = doc.name
 	return names
+
+
+def setup_customer():
+	assert_local_site()
+	if frappe.db.exists("Customer", DEMO_CUSTOMER):
+		return
+	frappe.get_doc(
+		{
+			"doctype": "Customer",
+			"customer_name": DEMO_CUSTOMER,
+			"customer_type": "Company",
+			"customer_group": frappe.db.get_value("Customer Group", {"is_group": 0}),
+			"territory": frappe.db.get_value("Territory", {"is_group": 0}),
+		}
+	).insert(ignore_permissions=True)
 
 
 def setup_stock(company, locations):

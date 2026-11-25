@@ -71,6 +71,12 @@ class TestDemoUsers(IntegrationTestCase):
 			self.assertTrue(roles <= set(frappe.get_roles(email)), email)
 		self.assertNotIn("WMS Supervisor", frappe.get_roles("worker@cloud-wms.local"))
 
+	def test_demo_customer_is_created_once(self):
+		demo.setup_customer()
+		demo.setup_customer()
+
+		self.assertEqual(frappe.db.count("Customer", {"name": demo.DEMO_CUSTOMER}), 1)
+
 	def test_demo_setup_refuses_non_local_sites(self):
 		original = frappe.local.site
 		frappe.local.site = "wms.example.com"

@@ -6,7 +6,7 @@ import LoginPanel from './components/LoginPanel.vue'
 import OrderForm from './components/OrderForm.vue'
 import { logout } from './lib/erpnext'
 import { loadTasks, persistTasks, statusLabel } from './lib/tasks'
-import type { Screen, SessionUser, TaskStatus, WmsTask } from './types'
+import type { IngestedOrder, Screen, SessionUser, TaskStatus, WmsTask } from './types'
 
 const user = ref<SessionUser | null>(null)
 const activeScreen = ref<Screen>('operations')
@@ -16,6 +16,7 @@ const scannerOpen = ref(false)
 const pickedQuantity = ref(0)
 const shortageReason = ref('')
 const scanMessage = ref('')
+const submittedOrder = ref<IngestedOrder>()
 
 watch(tasks, persistTasks, { deep: true })
 
@@ -86,9 +87,9 @@ function mockDispatch(task: WmsTask) {
   updateTask(task.id, { status: 'dispatched' })
 }
 
-function created(task: WmsTask) {
-  tasks.value = [task, ...tasks.value]
-  selectTask(task, 'operations')
+function created(order: IngestedOrder) {
+  submittedOrder.value = order
+  setScreen('operations')
 }
 
 async function signOut() {
@@ -119,7 +120,7 @@ function statusClass(status: TaskStatus) {
         <button :class="{ active: activeScreen === 'pick' }" :disabled="!selectedTask" @click="setScreen('pick')"><i>03</i>Pick</button>
         <button :class="{ active: activeScreen === 'qa' }" @click="setScreen('qa')"><i>04</i>QA review <b v-if="qaTasks.length">{{ qaTasks.length }}</b></button>
         <button :class="{ active: activeScreen === 'dispatch' }" @click="setScreen('dispatch')"><i>05</i>Dispatch</button>
-        <div class="prototype-notice"><span>PROTOTYPE</span><p>Pick, QA and dispatch states are local WMS workflow data. Sales Orders are real ERPNext drafts.</p></div>
+        <div class="prototype-notice"><span>PROTOTYPE</span><p>Sales Orders are real, submitted ERPNext documents. Pick, QA and dispatch states are local WMS data until the Pick List workflow ships.</p></div>
       </aside>
 
       <main class="workspace">
@@ -128,9 +129,10 @@ function statusClass(status: TaskStatus) {
             <div><p class="eyebrow">Warehouse / Main</p><h1>Today’s flow</h1><p>Claim the next task, scan its shelf and confirm the item.</p></div>
             <Button class="primary-button" variant="solid" @click="setScreen('create-order')">New test order</Button>
           </div>
+          <p v-if="submittedOrder" class="form-success" role="status">{{ submittedOrder.sales_order }} is submitted in ERPNext and ready to be claimed.</p>
           <div class="metric-grid"><div class="metric-card"><span>AVAILABLE</span><strong>{{ tasks.filter(t => t.status === 'available').length }}</strong><small>Ready to claim</small></div><div class="metric-card"><span>IN PROGRESS</span><strong>{{ tasks.filter(t => ['claimed', 'picking'].includes(t.status)).length }}</strong><small>Picker-owned work</small></div><div class="metric-card warning"><span>QA HOLD</span><strong>{{ qaTasks.length }}</strong><small>Short picks to approve</small></div><div class="metric-card success"><span>READY TO SHIP</span><strong>{{ dispatchTasks.length }}</strong><small>Mock dispatch queue</small></div></div>
           <section class="surface-card task-list"><div class="section-heading"><div><p class="eyebrow">Live work</p><h2>Pick queue</h2></div><span>{{ activeTasks.length }} active</span></div>
-            <div v-if="!tasks.length" class="empty-state"><strong>No prototype tasks yet.</strong><p>Create a test Sales Order to add a task to this workboard.</p><Button variant="outline" @click="setScreen('create-order')">Create test order</Button></div>
+            <div v-if="!tasks.length" class="empty-state"><strong>No prototype tasks yet.</strong><p>Submitted Sales Orders will appear here as claimable work when the Pick List workflow ships.</p><Button variant="outline" @click="setScreen('create-order')">Create test order</Button></div>
             <article v-for="task in activeTasks" :key="task.id" class="task-row"><div class="task-route"><span class="route-dot"></span><div><strong>{{ task.salesOrder }}</strong><small>{{ task.customer }} · {{ task.lines[0].location }}</small></div></div><div class="task-item"><strong>{{ task.lines[0].itemName }}</strong><small>{{ task.lines[0].pickedQty }} / {{ task.lines[0].requestedQty }} confirmed</small></div><span class="status-chip" :class="statusClass(task.status)">{{ statusLabel[task.status] }}</span><Button v-if="task.status === 'available'" variant="solid" class="row-action" @click="claim(task)">Claim</Button><Button v-else-if="['claimed', 'picking'].includes(task.status)" variant="outline" class="row-action" @click="selectTask(task, 'pick')">Continue</Button><Button v-else-if="task.status === 'qa_required'" variant="outline" class="row-action" @click="selectTask(task, 'qa')">Review</Button><Button v-else variant="outline" class="row-action" @click="selectTask(task, 'dispatch')">Ship</Button></article>
           </section>
         </section>

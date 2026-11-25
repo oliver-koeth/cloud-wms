@@ -58,7 +58,7 @@ running site, then optionally create the local demo data:
 
 ```sh
 make install-app   # first time; use `make migrate` after later app changes
-make demo-data     # local only: users, warehouse locations, stock
+make demo-data     # local only: users, warehouse locations, stock, demo Customer
 ```
 
 If the stack was already running, `make up` recreates the containers with the new
@@ -92,14 +92,14 @@ user's ERPNext permissions govern data access.
 
 The first UI slice includes:
 
-- Tactical intake that creates a real **draft ERPNext Sales Order**.
-- An explicit button to add one local demo Customer and Item if the fresh site
-  has no master data.
+- Order intake that submits a real **ERPNext Sales Order** (multiple lines, optional
+  external reference) through the idempotent `cloud_wms.api.orders.ingest`
+  endpoint. `make demo-data` provides the demo Customer, Item and stock.
 - Self-claimable pick tasks, a camera-scanner interface with a manual fallback,
   and local task state persisted in the browser.
 - Mandatory QA approval for short picks and a mock-only dispatch label/step.
 
-The test-order integration is real. Pick, QA and dispatch states are intentionally
+The order intake is real. Pick, QA and dispatch states are intentionally
 labelled as local prototype workflow data until the custom Frappe API is
 implemented. Build and test with `make ui-build` and `make ui-test`.
 
@@ -107,7 +107,7 @@ implemented. Build and test with `make ui-build` and `make ui-test`.
 
 | Available now | Deliberately not implemented yet |
 | --- | --- |
-| ERPNext session login; master-data reads; opt-in demo Customer/Item creation; draft Sales Order creation | External-order connector; ERPNext Pick List creation/assignment; stock reservation; persistent QA/audit state; Delivery Note submission; stock-ledger posting |
+| ERPNext session login; master-data reads; submitted Sales Order intake via the WMS API (idempotent, de-duplicated by source + external ID, audited) | External-order connector; ERPNext Pick List creation/assignment; stock reservation; persistent QA state; Delivery Note submission; stock-ledger posting |
 | Local workboard, self-claim, camera/manual scan interaction, short-pick QA and mock dispatch | Production workflow API, idempotency, server-side permissions for WMS operations and carrier integration |
 
 The camera scanner asks the browser for camera permission and uses the browser's

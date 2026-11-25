@@ -12,11 +12,11 @@ external-order workflow.
 
 | Implemented in `ui/` | Still proposed / not implemented |
 | --- | --- |
-| ERPNext session login; reads of Company, Customer, Item and Warehouse; explicit local demo Customer/Item setup; draft Sales Order creation | External-order source ingestion and idempotency; Pick List creation/allocation; reservation; server-side task/QA audit records; Delivery Note submission; stock-ledger update |
+| ERPNext session login; reads of Company, Customer, Item and Warehouse; submitted Sales Order intake through `cloud_wms.api.orders.ingest` (idempotent, de-duplicated by source + external ID) | External-order connector; Pick List creation/allocation; reservation; server-side task/QA audit records; Delivery Note submission; stock-ledger update |
 | Browser-local self-claim, pick quantity, short-pick QA and mock dispatch state | Custom Frappe API, role/warehouse enforcement for WMS operations, retry-safe workflow commands and carrier integration |
 | Camera-scanner interface with manual-entry fallback | Guaranteed camera availability or barcode decoding in every browser/device |
 
-The prototype uses standard ERPNext REST resources only for tactical order intake.
+The prototype uses standard ERPNext REST resources only for reads and session handling; order intake uses the WMS API.
 Its local workboard state is not ERPNext workflow state and must never be treated
 as a submitted Pick List or Delivery Note.
 
@@ -169,9 +169,9 @@ operation has completed and its resulting document state is re-read.
 
 ## 10. Future custom WMS API boundary (contract only)
 
-No custom WMS endpoints are implemented in this project. The UI prototype does
-use standard ERPNext login and document-resource endpoints for session handling
-and draft Sales Order intake, as described in `ARCHITECTURE.md`. The later WMS
+Implemented so far: `cloud_wms.api.session.context` and `cloud_wms.api.orders.ingest`.
+The UI uses standard ERPNext login and read-only document-resource endpoints, as
+described in `ARCHITECTURE.md`. The remaining WMS
 app/API should offer task-oriented operations rather than generic browser access
 to ERPNext doctypes.
 
