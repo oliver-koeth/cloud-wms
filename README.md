@@ -103,17 +103,17 @@ The first UI slice includes:
 - Short picks: the picker reports a shortage and a Supervisor approves it
   before the Pick List can be submitted. Approval reduces the line to the
   picked quantity (or removes it if nothing was picked).
-- Dispatch is a read-only placeholder: the Delivery Note is not wired yet.
+- Dispatch: a Dispatch user confirms a submitted Pick List (optional package or carrier reference). The backend creates and submits one ERPNext Delivery Note for the picked quantities, which posts the stock ledger and completes the Pick List. A short-picked order returns to the queue for the remainder.
 
 Intake and picking are real ERPNext documents, enforced server-side by
-`cloud_wms.api.tasks.*`. Dispatch is still not implemented. Build and test with
+`cloud_wms.api.tasks.*`. Dispatch is `cloud_wms.api.dispatch.confirm`. Build and test with
 `make ui-build` and `make ui-test`; run the backend tests with `make app-test`.
 
 ### Prototype capability boundary
 
 | Available now | Deliberately not implemented yet |
 | --- | --- |
-| ERPNext session login; master-data reads; submitted Sales Order intake; Pick List creation on claim, assignment, scan confirmation, short-pick approval, submission and stock reservation (all idempotent, audited, role-checked) | External-order connector; Delivery Note submission and partial delivery; stock-ledger posting; carrier integration |
+| ERPNext session login; master-data reads; submitted Sales Order intake; Pick List creation on claim, assignment, scan confirmation, short-pick approval, submission and stock reservation, Delivery Note dispatch with stock-ledger posting and partial delivery (all idempotent, audited, role-checked) | External-order connector; carrier integration |
 
 The camera scanner asks the browser for camera permission and uses the browser's
 `BarcodeDetector` capability where available. A scanner-input/manual-entry

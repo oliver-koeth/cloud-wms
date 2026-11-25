@@ -79,3 +79,19 @@ export interface IngestedOrder {
   pick_list: string | null
   duplicate: boolean
 }
+
+export interface DispatchReceipt {
+  pick_list: string
+  sales_order: string | null
+  pick_list_status: string
+  already_dispatched: boolean
+  delivery_note: {
+    name: string
+    docstatus: number
+    status: string
+    posting_date: string
+    posting_time: string
+    reference: string | null
+    units: number
+  }
+}

@@ -123,9 +123,8 @@ master data comes from `make demo-data`, never from the browser. The UI has a ca
 
 The browser holds only the ERPNext session cookie; it never receives an
 Administrator API key. Pick tasks are real ERPNext `Pick List` documents managed
-by `cloud_wms.api.tasks.*` (see below). Dispatch is not implemented yet; the UI
-shows it read-only and must not represent it as a submitted ERPNext
-`Delivery Note`.
+by `cloud_wms.api.tasks.*` (see below). Dispatch is `cloud_wms.api.dispatch.confirm` (see below); the UI shows a
+Delivery Note as submitted only after that call returns it.
 
 ### Direct ERPNext calls allowed in the prototype
 
@@ -155,6 +154,19 @@ has remaining quantity and no active Pick List. All endpoints are role-checked
 | `record_shortage` | Marks a line Pending; blocks completion until approved |
 | `approve_shortage` (Supervisor) | Reduces the line to the picked quantity, or removes it; an empty Pick List is deleted |
 | `complete` | Requires every line fully picked or approved short; submits the Pick List and creates stock reservations when enabled |
+
+### Dispatch API (`cloud_wms.api.dispatch`)
+
+| Endpoint | Effect |
+| --- | --- |
+| `confirm(pick_list, reference?)` (Dispatch; idempotent) | Requires a submitted Pick List. Finds or creates the Delivery Note with ERPNext's `create_delivery_note` (picked quantities only), stores `reference` in `lr_no`, submits it and returns the Delivery Note with posting date and time. A repeat call returns the existing submitted note (`already_dispatched`) and never creates a second one |
+
+The mapper and submission run as the system user because they read customer,
+address and tax masters the Dispatch role cannot; the endpoint checks the role
+first and the note's owner is set to the dispatcher. Partial delivery works
+through approved short picks: only picked quantities are delivered, and the
+Sales Order becomes claimable again for the remainder. Product bundles are not
+handled.
 
 Per-line state lives in custom fields on `Pick List Item`
 (`cloud_wms_location_confirmed`, `cloud_wms_shortage_state`,

@@ -1,4 +1,4 @@
-import type { FormOptions, IngestOrderInput, IngestedOrder, PickTask, SessionUser, TaskListing } from '../types'
+import type { DispatchReceipt, FormOptions, IngestOrderInput, IngestedOrder, PickTask, SessionUser, TaskListing } from '../types'
 
 interface WmsError {
   code?: string
@@ -133,6 +133,15 @@ export async function getRoles(): Promise<string[]> {
 export const listTasks = () => readTasks<TaskListing>('list_tasks')
 
 export const claimTask = (salesOrder: string) => actOnTask('claim', { sales_order: salesOrder })
+
+export async function dispatchTask(pickList: string, reference?: string): Promise<DispatchReceipt> {
+  const result = await request<{ message: { data: DispatchReceipt } }>('/api/method/cloud_wms.api.dispatch.confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idempotency_key: crypto.randomUUID(), pick_list: pickList, reference: reference || undefined }),
+  })
+  return result.message.data
+}
 
 export const releaseTask = (pickList: string) => actOnTask<{ released: boolean }>('release', { pick_list: pickList })
 

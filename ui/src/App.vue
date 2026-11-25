@@ -10,6 +10,7 @@ import {
   completeTask,
   confirmLocation,
   confirmPick,
+  dispatchTask,
   getRoles,
   listTasks,
   logout,
@@ -17,7 +18,7 @@ import {
   releaseTask,
 } from './lib/erpnext'
 import { statusLabel } from './lib/status'
-import type { IngestedOrder, PickTask, Screen, SessionUser, TaskLine, TaskListing, TaskStatus } from './types'
+import type { DispatchReceipt, IngestedOrder, PickTask, Screen, SessionUser, TaskLine, TaskListing, TaskStatus } from './types'
 
 type ScanTarget = { kind: 'location' | 'item'; row: string }
 
@@ -32,10 +33,13 @@ const busy = ref(false)
 const message = ref('')
 const messageIsError = ref(false)
 const submittedOrder = ref<IngestedOrder>()
+const dispatchReferences = ref<Record<string, string>>({})
+const receipts = ref<DispatchReceipt[]>([])
 
 const canSeeTasks = computed(() =>
   !!user.value?.roles?.some((role) => ['WMS Picker', 'WMS Supervisor', 'WMS Dispatch', 'System Manager'].includes(role)),
 )
+const canDispatch = computed(() => !!user.value?.roles?.some((role) => ['WMS Dispatch', 'System Manager'].includes(role)))
 const isSupervisor = computed(() => !!user.value?.roles?.some((role) => ['WMS Supervisor', 'System Manager'].includes(role)))
 const activeTasks = computed(() => listing.value.active.filter((task) => task.status !== 'dispatched'))
 const selectedTask = computed(() => listing.value.active.find((task) => task.pick_list === selectedPickList.value))
@@ -101,6 +105,11 @@ async function claim(salesOrder: string) {
   if (task) openTask(task, 'pick')
 }
 
+async function dispatch(task: PickTask) {
+  const receipt = await run(() => dispatchTask(task.pick_list, dispatchReferences.value[task.pick_list]?.trim()), `${task.sales_order} dispatched.`)
+  if (receipt) receipts.value = [receipt, ...receipts.value.filter((entry) => entry.pick_list !== receipt.pick_list)]
+}
+
 async function release(task: PickTask) {
   const done = await run(() => releaseTask(task.pick_list), `${task.sales_order} returned to the queue.`)
   if (done) setScreen('operations')
@@ -150,6 +159,8 @@ async function signOut() {
   user.value = null
   notify('')
   listing.value = { claimable: [], active: [] }
+  receipts.value = []
+  dispatchReferences.value = {}
   activeScreen.value = 'operations'
 }
 
@@ -185,7 +196,7 @@ watch(selectedTask, (task) => {
         <button :class="{ active: activeScreen === 'pick' }" :disabled="!selectedTask" @click="setScreen('pick')"><i>03</i>Pick</button>
         <button :class="{ active: activeScreen === 'qa' }" @click="setScreen('qa')"><i>04</i>QA review <b v-if="qaTasks.length">{{ qaTasks.length }}</b></button>
         <button :class="{ active: activeScreen === 'dispatch' }" @click="setScreen('dispatch')"><i>05</i>Dispatch</button>
-        <div class="prototype-notice"><span>PROTOTYPE</span><p>Sales Orders and Pick Lists are real ERPNext documents. Dispatch is not wired to a Delivery Note yet.</p></div>
+        <div class="prototype-notice"><span>PROTOTYPE</span><p>Sales Orders and Pick Lists are real ERPNext documents. Dispatch submits a real Delivery Note, which posts the stock ledger.</p></div>
       </aside>
 
       <main class="workspace">
@@ -235,8 +246,9 @@ watch(selectedTask, (task) => {
         </section>
 
         <section v-else-if="activeScreen === 'dispatch'" class="screen-grid">
-          <div class="screen-header"><div><p class="eyebrow">Dispatch station</p><h1>Ready to leave</h1><p>Picked and submitted. Delivery Note creation is the next phase.</p></div><span class="system-pill">Delivery Note: not yet wired</span></div>
-          <section class="surface-card dispatch-list"><div v-if="!dispatchTasks.length" class="empty-state"><strong>No task is ready to ship.</strong><p>Complete a pick, or approve a short pick first.</p></div><article v-for="task in dispatchTasks" :key="task.pick_list" class="dispatch-row"><div><p class="eyebrow">{{ task.sales_order }} · {{ task.customer }}</p><h2>{{ task.pick_list }} · {{ task.lines.reduce((sum, line) => sum + line.picked_qty, 0) }} units</h2><p v-if="task.lines.some((line) => line.shortage_state === 'Approved')" class="approved-note">Includes an approved short pick</p></div></article></section>
+          <div class="screen-header"><div><p class="eyebrow">Dispatch station</p><h1>Ready to leave</h1><p>Picked and submitted. Confirming dispatch submits the ERPNext Delivery Note.</p></div><span class="system-pill">Delivery Note: ERPNext</span></div>
+          <section class="surface-card dispatch-list"><div v-if="!dispatchTasks.length" class="empty-state"><strong>No task is ready to ship.</strong><p>Complete a pick, or approve a short pick first.</p></div><article v-for="task in dispatchTasks" :key="task.pick_list" class="dispatch-row"><div><p class="eyebrow">{{ task.sales_order }} · {{ task.customer }}</p><h2>{{ task.pick_list }} · {{ task.lines.reduce((sum, line) => sum + line.picked_qty, 0) }} units</h2><p v-if="task.lines.some((line) => line.shortage_state === 'Approved')" class="approved-note">Includes an approved short pick</p></div><div v-if="canDispatch" class="dispatch-actions"><input v-model="dispatchReferences[task.pick_list]" class="dispatch-reference" maxlength="140" placeholder="Package or carrier reference (optional)" :disabled="busy" /><Button variant="solid" :disabled="busy" @click="dispatch(task)">Confirm dispatch</Button></div><p v-else class="approved-note">Needs the Dispatch role to confirm.</p></article></section>
+          <section v-if="receipts.length" class="surface-card dispatch-list"><article v-for="receipt in receipts" :key="receipt.pick_list" class="dispatch-row"><div><p class="eyebrow">{{ receipt.sales_order }} · dispatched</p><h2>{{ receipt.delivery_note.name }} · {{ receipt.delivery_note.units }} units</h2><p>Submitted {{ receipt.delivery_note.posting_date }} {{ receipt.delivery_note.posting_time }}<template v-if="receipt.delivery_note.reference"> · Ref {{ receipt.delivery_note.reference }}</template></p></div><span class="status-chip status-ready-to-dispatch">Delivery Note submitted</span></article></section>
         </section>
       </main>
     </div>

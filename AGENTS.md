@@ -44,9 +44,9 @@ local development. Use `make ui-install`, `make ui-dev`, `make ui-test` and
   through `cloud_wms.api.orders.ingest` (submitted `Sales Order`; the UI generates
   one idempotency key per distinct submission).
 - The workboard, claim, pick confirmation and short-pick approval use
-  `cloud_wms.api.tasks.*`, which manage real ERPNext Pick Lists. Dispatch is a
-  read-only placeholder until the Delivery Note phase; do not describe it as
-  shipped stock movement.
+  `cloud_wms.api.tasks.*`, which manage real ERPNext Pick Lists. Dispatch uses
+  `cloud_wms.api.dispatch.confirm`, which submits a real ERPNext Delivery Note;
+  never mark a task dispatched in the UI before that call returns.
 - Do not extend direct browser calls to ERPNext for operational workflow writes.
   Add the custom Frappe API under `apps/` first, with permission checks,
   idempotency and audit records.

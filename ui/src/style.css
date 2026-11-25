@@ -97,3 +97,5 @@ select option { background: #171b20; color: #f5f7f8; }.inline-fields { display: 
 .pick-lines { display: grid; gap: 18px; }
 .pick-lines .pick-card { display: grid; gap: 12px; }
 .pick-lines .confirm-card .primary-button { margin-right: 10px; }
+
+.dispatch-actions { display: flex; align-items: center; gap: 12px; }.dispatch-reference { background: #14181c; border: 1px solid #2a3037; color: #f5f7f8; padding: 9px 12px; border-radius: 6px; min-width: 260px; font-size: 13px; }
