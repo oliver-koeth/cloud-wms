@@ -12,7 +12,7 @@ Warehouse operator
         │
         ▼
 Current Cloud WMS UI (this repo: ui/)
-ERPNext session login • draft Sales Order intake • local prototype workboard
+ERPNext session login • submitted Sales Order intake • local prototype workboard
         │ standard ERPNext REST API today
         ▼
 ERPNext (upstream, unchanged)
@@ -114,13 +114,11 @@ below records the first UI increment.
 ## Current prototype boundary
 
 `ui/` is a standalone Vue 3 + TypeScript client using Frappe UI. Its development
-server proxies ERPNext's `/api` route, allowing an ERPNext user to create a draft
-`Sales Order` under their own session and permissions. The UI can also read
-Customer, Item, Warehouse and Company records needed for the tactical order form.
-
-On an empty local site, the user can explicitly create a clearly named demo
-Customer and stock Item. This is convenience test data only; it is never created
-implicitly when the UI loads. The UI has a camera-scanner interaction using
+server proxies ERPNext's `/api` route. Orders are submitted through the
+`cloud_wms.api.orders.ingest` endpoint, which creates and submits the
+`Sales Order` under the user's own session and permissions. The UI can also read
+Customer, Item, Warehouse and Company records needed for the order form. Demo
+master data comes from `make demo-data`, never from the browser. The UI has a camera-scanner interaction using
 `BarcodeDetector` when the browser supports it, plus a manual-entry fallback.
 
 The browser holds only the ERPNext session cookie; it never receives an
@@ -136,8 +134,8 @@ represented as a submitted ERPNext `Delivery Note`.
 | --- | --- | --- |
 | Sign in/out | `POST /api/method/login`, `POST /api/method/logout` | User session only; no embedded credentials |
 | Populate tactical order form | Read `Company`, `Customer`, `Item`, `Warehouse` resources | ERPNext permission controlled |
-| Prepare empty local site | Create named demo `Customer` / `Item` | Explicit operator action only |
-| Create test demand | Create unsubmitted `Sales Order` | Signed-in user's ERPNext permission only |
 
-No browser call may create a Pick List, Delivery Note, stock transaction or
+Orders enter only through `POST /api/method/cloud_wms.api.orders.ingest` (role
+`WMS Intake`; requires an `idempotency_key`; duplicate `source` + `external_order_id`
+returns the existing order). No browser call may create a Pick List, Delivery Note, stock transaction or
 workflow/audit record. Those operations belong to the future custom Frappe API.

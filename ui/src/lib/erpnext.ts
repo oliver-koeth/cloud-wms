@@ -1,6 +1,7 @@
-import type { FormOptions, SessionUser } from '../types'
+import type { FormOptions, IngestOrderInput, IngestedOrder, SessionUser } from '../types'
 
 interface FrappeErrorResponse {
+  error?: { code?: string; message?: string; next_action?: string | null; correlation_id?: string }
   message?: string
   exception?: string
   exc?: string
@@ -10,6 +11,10 @@ interface FrappeErrorResponse {
 const resourcePath = (doctype: string) => `/api/resource/${encodeURIComponent(doctype)}`
 
 function errorMessage(payload: FrappeErrorResponse, fallback: string) {
+  if (payload.error?.message) {
+    const { message, next_action: nextAction, correlation_id: correlationId } = payload.error
+    return [message, nextAction, correlationId ? `(ref ${correlationId})` : ''].filter(Boolean).join(' ')
+  }
   if (payload.message && typeof payload.message === 'string') return payload.message
   if (payload.exception) return payload.exception
   if (payload.exc) return payload.exc
@@ -77,86 +82,20 @@ export async function getFormOptions(): Promise<FormOptions> {
   return { customers, items, warehouses, company: companies[0]?.name }
 }
 
-export interface SalesOrderInput {
-  customer: string
-  company: string
-  deliveryDate: string
-  itemCode: string
-  quantity: number
-  rate: number
-  warehouse?: string
-}
-
-export async function createSalesOrder(input: SalesOrderInput): Promise<string> {
-  const document = {
-    doctype: 'Sales Order',
-    customer: input.customer,
-    company: input.company,
-    delivery_date: input.deliveryDate,
-    items: [
-      {
-        item_code: input.itemCode,
-        qty: input.quantity,
-        rate: input.rate,
-        delivery_date: input.deliveryDate,
-        warehouse: input.warehouse || undefined,
-      },
-    ],
-  }
-  const result = await request<{ data: { name: string } }>(resourcePath('Sales Order'), {
+export async function ingestOrder(input: IngestOrderInput, idempotencyKey: string): Promise<IngestedOrder> {
+  const result = await request<{ data: IngestedOrder }>('/api/method/cloud_wms.api.orders.ingest', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(document),
-  })
-  return result.data.name
-}
-
-async function createDocument<T>(doctype: string, document: Record<string, unknown>): Promise<T> {
-  const result = await request<{ data: T }>(resourcePath(doctype), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ doctype, ...document }),
+    body: JSON.stringify({
+      idempotency_key: idempotencyKey,
+      source: input.source,
+      external_order_id: input.externalOrderId || undefined,
+      customer: input.customer,
+      company: input.company,
+      delivery_date: input.deliveryDate,
+      set_warehouse: input.warehouse || undefined,
+      lines: input.lines.map((line) => ({ item_code: line.itemCode, qty: line.quantity, rate: line.rate })),
+    }),
   })
   return result.data
-}
-
-/**
- * Seeds only the empty local evaluation site. This is intentionally an explicit
- * operator action, not a hidden side effect of loading the order form.
- */
-export async function prepareDemoMasterData(company: string) {
-  const customer = 'WMS Demo Customer'
-  const item = 'WMS-DEMO-TOTE'
-  const [existingCustomers, existingItems] = await Promise.all([
-    list<{ name: string }>('Customer', ['name'], [['name', '=', customer]]),
-    list<{ name: string }>('Item', ['name'], [['name', '=', item]]),
-  ])
-
-  if (!existingCustomers.length) {
-    const [customerGroups, territories] = await Promise.all([
-      list<{ name: string }>('Customer Group', ['name'], [['is_group', '=', 0]]),
-      list<{ name: string }>('Territory', ['name'], [['is_group', '=', 0]]),
-    ])
-    if (!customerGroups[0]?.name || !territories[0]?.name) {
-      throw new Error('ERPNext needs at least one leaf Customer Group and Territory before a demo Customer can be created.')
-    }
-    await createDocument('Customer', {
-      customer_name: customer,
-      customer_type: 'Company',
-      customer_group: customerGroups[0].name,
-      territory: territories[0].name,
-    })
-  }
-  if (!existingItems.length) {
-    await createDocument('Item', {
-      item_code: item,
-      item_name: 'WMS Demo Tote',
-      item_group: 'All Item Groups',
-      stock_uom: 'Nos',
-      is_stock_item: 1,
-      standard_rate: 25,
-      default_company: company,
-    })
-  }
-  return { customer, item }
 }

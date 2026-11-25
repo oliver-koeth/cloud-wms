@@ -33,3 +33,28 @@ export interface FormOptions {
   warehouses: Array<{ name: string; warehouse_name?: string }>
   company?: string
 }
+
+export interface OrderLineInput {
+  itemCode: string
+  quantity: number
+  rate?: number
+}
+
+export interface IngestOrderInput {
+  source: string
+  externalOrderId?: string
+  customer: string
+  company: string
+  deliveryDate: string
+  warehouse?: string
+  lines: OrderLineInput[]
+}
+
+export interface IngestedOrder {
+  sales_order: string
+  customer: string
+  docstatus: number
+  status: string
+  pick_list: string | null
+  duplicate: boolean
+}
