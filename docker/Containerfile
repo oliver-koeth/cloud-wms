@@ -1,0 +1,8 @@
+FROM frappe/erpnext:v16.60.0
+
+# ERPNext and Frappe stay exactly as shipped upstream; only the custom app is layered on top.
+COPY --chown=frappe:root apps/cloud_wms /home/frappe/frappe-bench/apps/cloud_wms
+
+RUN cd /home/frappe/frappe-bench \
+ && uv pip install --python env/bin/python -e apps/cloud_wms \
+ && echo cloud_wms >> sites/apps.txt

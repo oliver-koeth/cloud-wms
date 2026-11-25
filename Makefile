@@ -2,7 +2,7 @@ SHELL := /bin/sh
 
 .DEFAULT_GOAL := help
 
-.PHONY: help checkout up down logs status verify ui-install ui-dev ui-build ui-test
+.PHONY: help checkout image up down logs status verify install-app migrate demo-data app-test app-test-clean ui-install ui-dev ui-build ui-test
 
 help: ## Show available commands.
 	@awk 'BEGIN {FS = ":.*##"}; /^[a-zA-Z0-9_-]+:.*##/ {printf "%-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -10,7 +10,10 @@ help: ## Show available commands.
 checkout: ## Initialise/update the unmodified ERPNext source checkout.
 	@./scripts/checkout-erpnext.sh
 
-up: checkout ## Start the local, official ERPNext evaluation stack.
+image: ## Build the ERPNext image with the cloud_wms app layered on top.
+	@docker build -q -f docker/Containerfile -t cloud-wms/erpnext:v16.60.0-wms .
+
+up: checkout image ## Start the local ERPNext stack with the cloud_wms app available.
 	@./scripts/start-erpnext.sh
 
 down: ## Stop the local ERPNext stack and retain its Docker volumes.
@@ -21,6 +24,21 @@ logs: ## Stream local ERPNext container logs.
 
 status: ## Show local ERPNext container status.
 	@./scripts/erpnext-compose.sh ps
+
+install-app: ## Install cloud_wms on the running site (first time only; `make migrate` afterwards).
+	@./scripts/erpnext-compose.sh exec backend bench --site frontend install-app cloud_wms
+
+migrate: ## Apply cloud_wms schema, roles, permissions and settings to the running site.
+	@./scripts/erpnext-compose.sh exec backend bench --site frontend migrate
+
+demo-data: ## Create demo users (Sales/Supervisor/Worker), locations and stock. Local sites only.
+	@./scripts/erpnext-compose.sh exec backend bench --site frontend execute cloud_wms.setup.demo.setup_all
+
+app-test: image ## Run cloud_wms tests on an isolated stack (first run takes several minutes).
+	@./scripts/app-test.sh
+
+app-test-clean: ## Remove the isolated test stack and its volumes.
+	@./scripts/app-test.sh clean
 
 verify: ## Validate the project scaffolding without starting containers.
 	@./scripts/verify.sh

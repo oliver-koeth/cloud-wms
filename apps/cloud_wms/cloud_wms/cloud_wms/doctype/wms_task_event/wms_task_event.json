@@ -1,0 +1,150 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:WTE-{#####}",
+ "creation": "2026-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "event_type",
+  "actor",
+  "correlation_id",
+  "idempotency_key",
+  "column_break_1",
+  "sales_order",
+  "pick_list",
+  "pick_list_item",
+  "delivery_note",
+  "section_break_1",
+  "item_code",
+  "warehouse",
+  "scanned_value",
+  "qty",
+  "reason",
+  "details"
+ ],
+ "fields": [
+  {
+   "fieldname": "event_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Event Type",
+   "options": "Order Received\nTask Released\nTask Claimed\nTask Assigned\nTask Released To Queue\nLocation Scanned\nItem Scanned\nPick Confirmed\nShort Pick\nTask Completed\nTask Cancelled\nDelivery Created\nDelivery Submitted\nInventory Corrected",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "actor",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Actor",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "correlation_id",
+   "fieldtype": "Data",
+   "label": "Correlation ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "idempotency_key",
+   "fieldtype": "Data",
+   "label": "Idempotency Key",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Sales Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pick_list",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Pick List",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pick_list_item",
+   "fieldtype": "Data",
+   "label": "Pick List Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "delivery_note",
+   "fieldtype": "Data",
+   "label": "Delivery Note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Data",
+   "label": "Item Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Data",
+   "label": "Warehouse",
+   "read_only": 1
+  },
+  {
+   "fieldname": "scanned_value",
+   "fieldtype": "Data",
+   "label": "Scanned Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "label": "Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "details",
+   "fieldtype": "Long Text",
+   "label": "Details",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Cloud WMS",
+ "name": "WMS Task Event",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "role": "System Manager"
+  },
+  {
+   "read": 1,
+   "role": "WMS Supervisor"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
