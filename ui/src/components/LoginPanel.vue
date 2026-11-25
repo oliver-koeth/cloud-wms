@@ -50,9 +50,9 @@ async function submit() {
       <span class="signal-label">SYSTEM ONLINE</span>
       <h2>Make work visible.<br /><em>Keep decisions human.</em></h2>
       <div class="workflow-rail">
-        <span>01</span><div><strong>Order intake</strong><small>Draft Sales Order in ERPNext</small></div>
+        <span>01</span><div><strong>Order intake</strong><small>Submitted Sales Order in ERPNext</small></div>
         <span>02</span><div><strong>Pick &amp; confirm</strong><small>Camera-assisted item validation</small></div>
-        <span>03</span><div><strong>QA &amp; dispatch</strong><small>Short-pick approval before ship</small></div>
+        <span>03</span><div><strong>QA &amp; dispatch</strong><small>Delivery Note submitted in ERPNext</small></div>
       </div>
     </aside>
   </main>

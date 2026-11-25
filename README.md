@@ -76,7 +76,7 @@ Run the app tests with `make app-test`. They use a separate, disposable stack
 (`cloud-wms-test`) and never touch the running site; the first run creates a test
 site and takes several minutes. `make app-test-clean` removes it.
 
-## WMS UI prototype
+## WMS UI
 
 With ERPNext running, start the separate client in a second terminal:
 
@@ -109,7 +109,7 @@ Intake and picking are real ERPNext documents, enforced server-side by
 `cloud_wms.api.tasks.*`. Dispatch is `cloud_wms.api.dispatch.confirm`. Build and test with
 `make ui-build` and `make ui-test`; run the backend tests with `make app-test`.
 
-### Prototype capability boundary
+### Capability boundary
 
 | Available now | Deliberately not implemented yet |
 | --- | --- |
@@ -134,7 +134,7 @@ scanners.
 
 ## Implemented design direction
 
-The WMS prototype uses a dark operational interface: nearly-black surfaces,
+The WMS UI uses a dark operational interface: nearly-black surfaces,
 high-contrast white text, and a safety/accessibility-tested industrial yellow
 accent inspired by Jungheinrich. These are initial design tokens—not a claim of
 official brand approval—and need a formal brand review before any external use.
