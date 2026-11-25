@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { claimTask, dispatchTask, ingestOrder, listTasks } from './erpnext'
+import { approveShortage, claimTask, confirmPick, dispatchTask, getRoles, ingestOrder, listTasks, login } from './erpnext'
 
 const input = {
   source: 'manual',
@@ -85,5 +85,35 @@ describe('dispatchTask', () => {
     stubFetch(409, { message: { error: { code: 'NOT_READY', message: 'Pick List is not submitted.', next_action: null, correlation_id: 'd1' } } })
 
     await expect(dispatchTask('STO-PICK-1')).rejects.toThrow('Pick List is not submitted. (ref d1)')
+  })
+})
+
+describe('session and task calls', () => {
+  it('reads roles from the WMS session context', async () => {
+    const fetchMock = stubFetch(200, { message: { data: { roles: ['WMS Picker'] } } })
+
+    await expect(getRoles()).resolves.toEqual(['WMS Picker'])
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/method/cloud_wms.api.session.context')
+  })
+
+  it('reports a failed login with the server message', async () => {
+    stubFetch(401, { message: 'Invalid login credentials' })
+
+    await expect(login('Worker', 'wrong')).rejects.toThrow('Invalid login credentials')
+  })
+
+  it('sends the scanned barcode and quantity when confirming a pick', async () => {
+    const fetchMock = stubFetch(200, { message: { data: { pick_list: 'STO-PICK-1' } } })
+
+    await confirmPick('STO-PICK-1', 'row1', 'ITEM-1', 2)
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/method/cloud_wms.api.tasks.confirm_pick')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ pick_list: 'STO-PICK-1', row: 'row1', item_barcode: 'ITEM-1', qty: 2 })
+  })
+
+  it('surfaces a forbidden short-pick approval', async () => {
+    stubFetch(403, { message: { error: { code: 'FORBIDDEN', message: 'Supervisor only.', next_action: null, correlation_id: 'f1' } } })
+
+    await expect(approveShortage('STO-PICK-1', 'row1')).rejects.toThrow('Supervisor only. (ref f1)')
   })
 })

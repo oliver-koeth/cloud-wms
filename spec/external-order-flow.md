@@ -1,6 +1,6 @@
 # External order flow specification
 
-**Status:** Production workflow proposed; prototype UI partially implemented  
+**Status:** Intake, picking and dispatch implemented against ERPNext; production hardening proposed  
 **Scope:** The first end-to-end WMS vertical slice  
 **Primary users:** Warehouse picker, packing/dispatch operator, warehouse
 administrator

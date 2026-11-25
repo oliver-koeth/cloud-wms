@@ -196,7 +196,7 @@ watch(selectedTask, (task) => {
         <button :class="{ active: activeScreen === 'pick' }" :disabled="!selectedTask" @click="setScreen('pick')"><i>03</i>Pick</button>
         <button :class="{ active: activeScreen === 'qa' }" @click="setScreen('qa')"><i>04</i>QA review <b v-if="qaTasks.length">{{ qaTasks.length }}</b></button>
         <button :class="{ active: activeScreen === 'dispatch' }" @click="setScreen('dispatch')"><i>05</i>Dispatch</button>
-        <div class="prototype-notice"><span>PROTOTYPE</span><p>Sales Orders and Pick Lists are real ERPNext documents. Dispatch submits a real Delivery Note, which posts the stock ledger.</p></div>
+        <div class="system-notice"><span>ERPNEXT</span><p>Sales Orders, Pick Lists and Delivery Notes are real ERPNext documents. Dispatch posts the stock ledger.</p></div>
       </aside>
 
       <main class="workspace">

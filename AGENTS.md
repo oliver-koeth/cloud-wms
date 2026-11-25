@@ -13,7 +13,7 @@ logic into the UI, or bypass ERPNext document validation and posting.
 | `vendor/erpnext` | Upstream Git submodule | Read-only ERPNext source reference |
 | `.runtime/frappe_docker` | Generated, ignored | Unmodified upstream local runtime support |
 | `spec/` | This repository | Product and workflow specifications |
-| `ui/` | This repository | Standalone Vue 3/TypeScript WMS prototype using Frappe UI |
+| `ui/` | This repository | Standalone Vue 3/TypeScript WMS client using Frappe UI |
 | `apps/cloud_wms` | This repository | Custom Frappe app: roles, permissions, idempotency, audit, workflow API (built into `docker/Containerfile`) |
 
 ## Implementation rules
@@ -30,7 +30,7 @@ logic into the UI, or bypass ERPNext document validation and posting.
 - Add tests alongside implementation. For external-order actions, test retries,
   stale data, duplicate scans, permissions and document submission failures.
 
-## Current UI prototype
+## Current UI
 
 `ui/` is implemented and runs through Vite at `http://localhost:5173` during
 local development. Use `make ui-install`, `make ui-dev`, `make ui-test` and
@@ -56,7 +56,7 @@ local development. Use `make ui-install`, `make ui-dev`, `make ui-test` and
 ### Current visual tokens
 
 Use semantic CSS variables/tokens rather than raw values in components. The
-implemented prototype uses Canvas `#080A0C`, Surface 01 `#101317`, Surface 02
+implemented UI uses Canvas `#080A0C`, Surface 01 `#101317`, Surface 02
 `#171B20`, Border `#2A3037`, Signal `#FFD500`, Text `#F5F7F8`, Muted `#949CA5`,
 Success `#35D07F` and Error `#FF5252`. These are a proposed digital extension
 inspired by Jungheinrich, not official brand tokens.

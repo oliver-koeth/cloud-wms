@@ -69,8 +69,8 @@ unmodified. `make install-app` / `make migrate` then apply the app to the site.
 - `cloud_wms.api.session.context` returns the caller's WMS roles and warehouses.
 - `cloud_wms.setup.demo` creates local-only demo users, locations and stock.
 
-Order, claim, pick and dispatch endpoints arrive in later phases; the UI does not
-call this app yet.
+The order, task and dispatch endpoints (`cloud_wms.api.orders`, `tasks`,
+`dispatch`) are described below; the UI calls only these for workflow writes.
 
 `make app-test` runs the app's tests on a separate disposable stack because the
 idempotency service commits mid-request.
@@ -107,11 +107,11 @@ External sales order → ERPNext Sales Order / Pick List → WMS scan-and-confir
 ```
 
 The full behavioural contract, outstanding decisions and acceptance criteria are
-in [spec/external-order-flow.md](spec/external-order-flow.md). The initial
-scaffold did not implement any part of this flow; the current prototype boundary
-below records the first UI increment.
+in [spec/external-order-flow.md](spec/external-order-flow.md). The flow is
+implemented end to end for manually entered orders; the boundary below records
+what the UI does and may call.
 
-## Current prototype boundary
+## UI boundary
 
 `ui/` is a standalone Vue 3 + TypeScript client using Frappe UI. Its development
 server proxies ERPNext's `/api` route. Orders are submitted through the
@@ -126,7 +126,7 @@ Administrator API key. Pick tasks are real ERPNext `Pick List` documents managed
 by `cloud_wms.api.tasks.*` (see below). Dispatch is `cloud_wms.api.dispatch.confirm` (see below); the UI shows a
 Delivery Note as submitted only after that call returns it.
 
-### Direct ERPNext calls allowed in the prototype
+### Direct ERPNext calls allowed from the browser
 
 | Purpose | Standard ERPNext API | Restriction |
 | --- | --- | --- |
