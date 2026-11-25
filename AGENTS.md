@@ -14,7 +14,7 @@ logic into the UI, or bypass ERPNext document validation and posting.
 | `.runtime/frappe_docker` | Generated, ignored | Unmodified upstream local runtime support |
 | `spec/` | This repository | Product and workflow specifications |
 | `ui/` | This repository | Standalone Vue 3/TypeScript WMS prototype using Frappe UI |
-| `apps/` | This repository, future | Custom Frappe app/API orchestration |
+| `apps/cloud_wms` | This repository | Custom Frappe app: roles, permissions, idempotency, audit, workflow API (built into `docker/Containerfile`) |
 
 ## Implementation rules
 
@@ -75,7 +75,7 @@ graph has insufficient coverage.
 
 ## Local runtime
 
-Use `make up`, `make status`, `make logs`, and `make down`. Do not commit `.env`,
+Use `make up`, `make status`, `make logs`, and `make down`. After changing `apps/cloud_wms`, run `make image` (or `make up`), `make migrate`, and `make app-test`; app tests must run on the isolated test stack, never the live site. Do not commit `.env`,
 `.runtime/`, container data, or generated frontend dependencies. The current
 Frappe Docker stack is for local evaluation only; do not describe it as production
 ready.

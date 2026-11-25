@@ -50,6 +50,32 @@ Check progress with `make status` or `make logs`; stop the services with
 Run `make help` for every command and `make verify` for a no-container scaffold
 check.
 
+### Custom Frappe app (`apps/cloud_wms`)
+
+`make up` first builds `cloud-wms/erpnext:v16.60.0-wms` (`make image`): the
+unmodified upstream ERPNext image plus the `cloud_wms` app. Install it on the
+running site, then optionally create the local demo data:
+
+```sh
+make install-app   # first time; use `make migrate` after later app changes
+make demo-data     # local only: users, warehouse locations, stock
+```
+
+If the stack was already running, `make up` recreates the containers with the new
+image; site data is kept in Docker volumes.
+
+Demo users (password `admin` for all; log in by username or email):
+
+| Username | Roles | Purpose |
+| --- | --- | --- |
+| `Sales` | Sales User, WMS Intake | Creates and submits Sales Orders |
+| `Supervisor` | WMS Supervisor, Picker, Dispatch | Claims/assigns tasks, cancels, dispatches |
+| `Worker` | WMS Picker | Self-claims and picks |
+
+Run the app tests with `make app-test`. They use a separate, disposable stack
+(`cloud-wms-test`) and never touch the running site; the first run creates a test
+site and takes several minutes. `make app-test-clean` removes it.
+
 ## WMS UI prototype
 
 With ERPNext running, start the separate client in a second terminal:

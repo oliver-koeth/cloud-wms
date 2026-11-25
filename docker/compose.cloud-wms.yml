@@ -1,0 +1,14 @@
+# Layered over the unmodified upstream pwd.yml: swaps the ERPNext image for the one that also
+# contains the cloud_wms app. Build it first with `make image`.
+x-wms-image: &wms-image
+  image: cloud-wms/erpnext:v16.60.0-wms
+
+services:
+  backend: *wms-image
+  configurator: *wms-image
+  create-site: *wms-image
+  frontend: *wms-image
+  queue-long: *wms-image
+  queue-short: *wms-image
+  scheduler: *wms-image
+  websocket: *wms-image

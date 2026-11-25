@@ -44,11 +44,36 @@ The runtime contains Frappe, ERPNext, MariaDB, Redis, workers, scheduler,
 websocket and nginx frontend. It creates one disposable local site at
 `http://localhost:8080`.
 
-This deliberately uses Frappe's evaluation path now. The UI exists as a separate
-Vite client, but there is no custom Frappe app yet. Once that app is implemented,
-replace the current prototype arrangement with a production-like compose setup
-that builds the custom app and UI into their own image(s), without altering the
-upstream ERPNext image or source checkout.
+The stack runs `cloud-wms/erpnext:v16.60.0-wms`, built from
+`docker/Containerfile`: the upstream `frappe/erpnext:v16.60.0` image with
+`apps/cloud_wms` copied in and pip-installed. `docker/compose.cloud-wms.yml`
+overrides only the `image:` of the upstream services, so `pwd.yml` stays
+unmodified. `make install-app` / `make migrate` then apply the app to the site.
+
+### `cloud_wms` app (Phase 1 foundation)
+
+- WMS roles (`WMS Intake`, `WMS Picker`, `WMS Dispatch`, `WMS Supervisor`) and a
+  `Custom DocPerm` matrix for Sales Order, Pick List, Stock Reservation Entry and
+  Delivery Note. Adding the first custom rule to a doctype freezes ERPNext's
+  standard permissions for it into `Custom DocPerm`; later ERPNext permission
+  changes for those doctypes no longer apply automatically.
+- Custom fields: `Sales Order.cloud_wms_source` / `cloud_wms_external_order_id`
+  and `Warehouse.cloud_wms_location_barcode` (each leaf bin is a Warehouse).
+- Stock Settings: stock reservation enabled, auto-reserve off (reservation is
+  created from the Pick List at completion).
+- `WMS Request` (idempotency keys with stored responses) and `WMS Task Event`
+  (append-only audit; plain Data references so draft Pick Lists can be deleted).
+- `@wms_endpoint` decorator: role guard, correlation id, error envelope
+  (`{"error": {code, message, next_action, correlation_id}}` with a matching HTTP
+  status) and idempotent replay.
+- `cloud_wms.api.session.context` returns the caller's WMS roles and warehouses.
+- `cloud_wms.setup.demo` creates local-only demo users, locations and stock.
+
+Order, claim, pick and dispatch endpoints arrive in later phases; the UI does not
+call this app yet.
+
+`make app-test` runs the app's tests on a separate disposable stack because the
+idempotency service commits mid-request.
 
 ## Responsibilities
 
