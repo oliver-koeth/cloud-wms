@@ -7,13 +7,13 @@ administrator
 
 ## Implementation status
 
-The repository implements intake and picking against real ERPNext documents;
-dispatch (Delivery Note) is not yet implemented.
+The repository implements intake, picking and dispatch against real ERPNext
+documents. Partial delivery is supported through approved short picks.
 
 | Implemented in `ui/` | Still proposed / not implemented |
 | --- | --- |
-| ERPNext session login; reads of Company, Customer, Item and Warehouse; submitted Sales Order intake through `cloud_wms.api.orders.ingest` (idempotent, de-duplicated by source + external ID) | External-order connector; Delivery Note submission and partial delivery; stock-ledger update; carrier integration |
-| Pick List creation on claim, self-claim/assignment, scan confirmation, supervisor-approved short picks, submission and stock reservation via `cloud_wms.api.tasks.*` (idempotent, audited) | Warehouse-level permission enforcement |
+| ERPNext session login; reads of Company, Customer, Item and Warehouse; submitted Sales Order intake through `cloud_wms.api.orders.ingest` (idempotent, de-duplicated by source + external ID) | External-order connector; carrier integration |
+| Pick List creation on claim, self-claim/assignment, scan confirmation, supervisor-approved short picks, submission and stock reservation via `cloud_wms.api.tasks.*`; Delivery Note dispatch via `cloud_wms.api.dispatch.confirm` (idempotent, audited) | Warehouse-level permission enforcement |
 | Camera-scanner interface with manual-entry fallback | Guaranteed camera availability or barcode decoding in every browser/device |
 
 The UI uses standard ERPNext REST resources only for reads and session handling;

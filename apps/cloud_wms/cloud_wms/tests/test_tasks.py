@@ -2,6 +2,7 @@ import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import add_days, nowdate
 
+from cloud_wms.api import dispatch as dispatch_api
 from cloud_wms.api import tasks as api
 from cloud_wms.services import tasks as service
 from cloud_wms.tests.utils import TEST_ABBR, TEST_COMPANY, ensure_master_data, ensure_user
@@ -12,6 +13,7 @@ PICKER = "wms-t3-picker@example.com"
 OTHER_PICKER = "wms-t3-picker2@example.com"
 SUPERVISOR = "wms-t3-supervisor@example.com"
 INTAKE = "wms-t3-intake@example.com"
+DISPATCHER = "wms-t3-dispatch@example.com"
 BIN_A = f"WMS T3 Bin A - {TEST_ABBR}"
 BIN_B = f"WMS T3 Bin B - {TEST_ABBR}"
 BARCODE_A = "T3-LOC-A"
@@ -70,6 +72,7 @@ class TestTasks(IntegrationTestCase):
 			(OTHER_PICKER, ("WMS Picker",)),
 			(SUPERVISOR, ("WMS Supervisor", "WMS Picker")),
 			(INTAKE, ("Sales User", "WMS Intake")),
+			(DISPATCHER, ("WMS Dispatch",)),
 		):
 			ensure_user(email, roles)
 		cls.bin_a = _ensure_warehouse("WMS T3 Bin A", BARCODE_A)
@@ -96,6 +99,13 @@ class TestTasks(IntegrationTestCase):
 		orders = frappe.get_all("Sales Order", filters={"cloud_wms_source": SOURCE}, pluck="name")
 		for order in orders:
 			for row in service.pick_lists_for_order(order):
+				for note in frappe.get_all(
+					"Delivery Note Item", filters={"against_pick_list": row.name}, pluck="parent", distinct=True
+				):
+					doc = frappe.get_doc("Delivery Note", note)
+					if doc.docstatus == 1:
+						doc.cancel()
+					frappe.delete_doc("Delivery Note", note, force=True)
 				pick = frappe.get_doc("Pick List", row.name)
 				if pick.docstatus == 1:
 					pick.cancel_stock_reservation_entries(notify=False)
@@ -338,6 +348,74 @@ class TestTasks(IntegrationTestCase):
 		self.assertEqual(self.ok(self.call(api.list_tasks, user=OTHER_PICKER))["active"], [])
 		supervisor_view = self.ok(self.call(api.list_tasks, user=SUPERVISOR))["active"]
 		self.assertIn(task["pick_list"], [t["pick_list"] for t in supervisor_view])
+
+
+	def submitted_pick(self, order=None, qty=None):
+		task = self.scan_row(self.claim(order or self.order()), qty=qty)
+		return task["pick_list"], self.ok(self.call(api.complete, pick_list=task["pick_list"]))
+
+	def dispatch(self, pick, **kwargs):
+		return self.call(dispatch_api.confirm, user=DISPATCHER, pick_list=pick, **kwargs)
+
+	def bin_qty(self, warehouse):
+		return frappe.db.get_value("Bin", {"item_code": self.item, "warehouse": warehouse}, "actual_qty")
+
+	def test_dispatch_submits_a_delivery_note_and_posts_stock(self):
+		order = self.order()
+		pick, _ = self.submitted_pick(order)
+		before = self.bin_qty(self.bin_a)
+
+		key = self.key("dispatch")
+		first = self.dispatch(pick, reference="PKG-42", idempotency_key=key)
+		data = self.ok(first)
+		note = data["delivery_note"]
+		self.assertEqual((note["docstatus"], note["units"], note["reference"]), (1, 3, "PKG-42"))
+		self.assertTrue(note["posting_date"] and note["posting_time"])
+		self.assertEqual(data["pick_list_status"], "Completed")
+		self.assertFalse(data["already_dispatched"])
+		item = frappe.get_doc("Delivery Note", note["name"]).items[0]
+		self.assertEqual((item.against_pick_list, item.warehouse, item.against_sales_order), (pick, self.bin_a, order))
+		self.assertEqual(self.bin_qty(self.bin_a), before - 3)
+		self.assertEqual(len(self.events(order, "Delivery Created")), 1)
+		self.assertEqual(len(self.events(order, "Delivery Submitted")), 1)
+
+		replay = self.dispatch(pick, reference="PKG-42", idempotency_key=key)
+		self.assertTrue(replay["replayed"])
+		again = self.ok(self.dispatch(pick))
+		self.assertTrue(again["already_dispatched"])
+		self.assertEqual(again["delivery_note"]["name"], note["name"])
+		self.assertEqual(self.bin_qty(self.bin_a), before - 3)
+
+		frappe.set_user(PICKER)
+		listing = self.ok(self.call(api.list_tasks))
+		self.assertNotIn(pick, [task["pick_list"] for task in listing["active"]])
+		self.assertNotIn(order, [row["sales_order"] for row in listing["claimable"]])
+
+	def test_dispatch_needs_a_submitted_pick_list_and_the_dispatch_role(self):
+		task = self.scan_row(self.claim(self.order()))
+		self.err(self.dispatch(task["pick_list"]), "NOT_READY")
+		pick, _ = task["pick_list"], self.ok(self.call(api.complete, user=PICKER, pick_list=task["pick_list"]))
+		self.err(self.call(dispatch_api.confirm, user=PICKER, pick_list=pick), "FORBIDDEN")
+		self.err(self.call(dispatch_api.confirm, user=SUPERVISOR, pick_list=pick), "FORBIDDEN")
+		self.err(self.dispatch("STO-PICK-0000-99999"), "NOT_FOUND")
+		self.err(self.dispatch(pick, reference="x" * 141), "INVALID_REQUEST")
+
+	def test_short_pick_delivers_only_what_was_picked_and_the_rest_returns_to_the_queue(self):
+		order = self.order()
+		task = self.scan_row(self.claim(order), qty=1)
+		pick, row = task["pick_list"], task["lines"][0]["row"]
+		self.ok(self.call(api.record_shortage, pick_list=pick, row=row, reason="Bin has 1 left"))
+		self.ok(self.call(api.approve_shortage, user=SUPERVISOR, pick_list=pick, row=row))
+		self.ok(self.call(api.complete, user=PICKER, pick_list=pick))
+
+		data = self.ok(self.dispatch(pick))
+		self.assertEqual(data["delivery_note"]["units"], 1)
+
+		frappe.set_user(PICKER)
+		claimable = {row["sales_order"]: row for row in self.ok(self.call(api.list_tasks))["claimable"]}
+		self.assertEqual(claimable[order]["remaining_qty"], 2)
+		again = self.claim(order)
+		self.assertEqual(again["lines"][0]["requested_qty"], 2)
 
 
 def install_fields():
