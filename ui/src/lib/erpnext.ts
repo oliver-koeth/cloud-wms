@@ -1,8 +1,15 @@
 import type { FormOptions, IngestOrderInput, IngestedOrder, SessionUser } from '../types'
 
-interface FrappeErrorResponse {
-  error?: { code?: string; message?: string; next_action?: string | null; correlation_id?: string }
+interface WmsError {
+  code?: string
   message?: string
+  next_action?: string | null
+  correlation_id?: string
+}
+
+interface FrappeErrorResponse {
+  error?: WmsError
+  message?: string | { error?: WmsError }
   exception?: string
   exc?: string
   _server_messages?: string
@@ -11,11 +18,12 @@ interface FrappeErrorResponse {
 const resourcePath = (doctype: string) => `/api/resource/${encodeURIComponent(doctype)}`
 
 function errorMessage(payload: FrappeErrorResponse, fallback: string) {
-  if (payload.error?.message) {
-    const { message, next_action: nextAction, correlation_id: correlationId } = payload.error
+  const wmsError = payload.error ?? (typeof payload.message === 'object' ? payload.message?.error : undefined)
+  if (wmsError?.message) {
+    const { message, next_action: nextAction, correlation_id: correlationId } = wmsError
     return [message, nextAction, correlationId ? `(ref ${correlationId})` : ''].filter(Boolean).join(' ')
   }
-  if (payload.message && typeof payload.message === 'string') return payload.message
+  if (typeof payload.message === 'string' && payload.message) return payload.message
   if (payload.exception) return payload.exception
   if (payload.exc) return payload.exc
   if (payload._server_messages) {
@@ -83,7 +91,7 @@ export async function getFormOptions(): Promise<FormOptions> {
 }
 
 export async function ingestOrder(input: IngestOrderInput, idempotencyKey: string): Promise<IngestedOrder> {
-  const result = await request<{ data: IngestedOrder }>('/api/method/cloud_wms.api.orders.ingest', {
+  const result = await request<{ message: { data: IngestedOrder } }>('/api/method/cloud_wms.api.orders.ingest', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -97,5 +105,5 @@ export async function ingestOrder(input: IngestOrderInput, idempotencyKey: strin
       lines: input.lines.map((line) => ({ item_code: line.itemCode, qty: line.quantity, rate: line.rate })),
     }),
   })
-  return result.data
+  return result.message.data
 }

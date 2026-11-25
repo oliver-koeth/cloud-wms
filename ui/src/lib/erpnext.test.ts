@@ -21,7 +21,7 @@ afterEach(() => vi.unstubAllGlobals())
 describe('ingestOrder', () => {
   it('posts the order with the idempotency key and returns the unwrapped result', async () => {
     const order = { sales_order: 'SAL-ORD-1', customer: 'Acme', docstatus: 1, status: 'To Deliver and Bill', pick_list: null, duplicate: false }
-    const fetchMock = stubFetch(200, { data: order, replayed: false, correlation_id: 'c1' })
+    const fetchMock = stubFetch(200, { message: { data: order, replayed: false, correlation_id: 'c1' } })
 
     await expect(ingestOrder(input, 'key-12345678')).resolves.toEqual(order)
 
@@ -36,7 +36,7 @@ describe('ingestOrder', () => {
   })
 
   it('surfaces the structured WMS error message and correlation id', async () => {
-    stubFetch(422, { error: { code: 'VALIDATION_FAILED', message: 'Item not found.', next_action: null, correlation_id: 'abc123' } })
+    stubFetch(422, { message: { error: { code: 'VALIDATION_FAILED', message: 'Item not found.', next_action: null, correlation_id: 'abc123' } } })
 
     await expect(ingestOrder(input, 'key-12345678')).rejects.toThrow('Item not found. (ref abc123)')
   })
