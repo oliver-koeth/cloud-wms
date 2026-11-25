@@ -56,7 +56,7 @@ class TestEndpoint(IntegrationTestCase):
 		frappe.set_user("Administrator")
 		data = session.context()["data"]
 		self.assertEqual(data["user"], "Administrator")
-		self.assertEqual(set(data["roles"]), set(WMS_ROLES))
+		self.assertEqual(set(data["roles"]), set(WMS_ROLES) | {"System Manager"})
 
 
 class TestAudit(IntegrationTestCase):
