@@ -126,8 +126,8 @@ async function actOnTask<T = PickTask>(name: string, body: Record<string, unknow
 }
 
 export async function getRoles(): Promise<string[]> {
-  const result = await request<{ message: string[] }>('/api/method/frappe.core.doctype.user.user.get_roles')
-  return result.message
+  const result = await request<{ message: { data: { roles: string[] } } }>('/api/method/cloud_wms.api.session.context')
+  return result.message.data.roles
 }
 
 export const listTasks = () => readTasks<TaskListing>('list_tasks')

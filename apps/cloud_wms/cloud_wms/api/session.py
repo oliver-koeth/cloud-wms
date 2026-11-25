@@ -17,7 +17,7 @@ def context():
 	return {
 		"user": user,
 		"full_name": frappe.utils.get_fullname(user),
-		"roles": [role for role in WMS_ROLES if role in user_roles],
+		"roles": [role for role in (*WMS_ROLES, "System Manager") if role in user_roles],
 		"warehouses": sorted(warehouses),
 		"app_version": cloud_wms.__version__,
 	}
