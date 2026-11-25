@@ -4,7 +4,7 @@ import re
 import frappe
 from frappe.utils import flt
 
-from cloud_wms.services import audit
+from cloud_wms.services import audit, tasks
 from cloud_wms.services.errors import InvalidRequest
 
 SOURCE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_\-]{0,39}$")
@@ -105,17 +105,12 @@ def _summary(name, duplicate):
 	order = frappe.db.get_value(
 		"Sales Order", name, ["name", "docstatus", "status", "per_delivered", "customer"], as_dict=True
 	)
-	pick_lists = frappe.get_all(
-		"Pick List",
-		filters={"sales_order": name, "docstatus": ["<", 2]},
-		pluck="name",
-		order_by="creation asc",
-	)
+	pick_lists = tasks.pick_lists_for_order(name)
 	return {
 		"sales_order": order.name,
 		"customer": order.customer,
 		"docstatus": order.docstatus,
 		"status": order.status,
-		"pick_list": pick_lists[0] if pick_lists else None,
+		"pick_list": pick_lists[0].name if pick_lists else None,
 		"duplicate": duplicate,
 	}

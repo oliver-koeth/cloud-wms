@@ -40,9 +40,10 @@ class TestSetup(IntegrationTestCase):
 	def test_permission_matrix(self):
 		picker = _perm("Pick List", "WMS Picker")
 		self.assertEqual((picker.read, picker.create, picker.submit, picker.cancel), (1, 1, 1, 0))
+		self.assertEqual(picker.delete, 1)
 
 		supervisor = _perm("Pick List", "WMS Supervisor")
-		self.assertEqual(supervisor.cancel, 1)
+		self.assertEqual((supervisor.cancel, supervisor.delete), (1, 1))
 
 		intake = _perm("Sales Order", "WMS Intake")
 		self.assertEqual((intake.create, intake.submit), (1, 1))

@@ -1,8 +1,15 @@
-import type { FormOptions, IngestOrderInput, IngestedOrder, SessionUser } from '../types'
+import type { FormOptions, IngestOrderInput, IngestedOrder, PickTask, SessionUser, TaskListing } from '../types'
+
+interface WmsError {
+  code?: string
+  message?: string
+  next_action?: string | null
+  correlation_id?: string
+}
 
 interface FrappeErrorResponse {
-  error?: { code?: string; message?: string; next_action?: string | null; correlation_id?: string }
-  message?: string
+  error?: WmsError
+  message?: string | { error?: WmsError }
   exception?: string
   exc?: string
   _server_messages?: string
@@ -11,11 +18,12 @@ interface FrappeErrorResponse {
 const resourcePath = (doctype: string) => `/api/resource/${encodeURIComponent(doctype)}`
 
 function errorMessage(payload: FrappeErrorResponse, fallback: string) {
-  if (payload.error?.message) {
-    const { message, next_action: nextAction, correlation_id: correlationId } = payload.error
+  const wmsError = payload.error ?? (typeof payload.message === 'object' ? payload.message?.error : undefined)
+  if (wmsError?.message) {
+    const { message, next_action: nextAction, correlation_id: correlationId } = wmsError
     return [message, nextAction, correlationId ? `(ref ${correlationId})` : ''].filter(Boolean).join(' ')
   }
-  if (payload.message && typeof payload.message === 'string') return payload.message
+  if (typeof payload.message === 'string' && payload.message) return payload.message
   if (payload.exception) return payload.exception
   if (payload.exc) return payload.exc
   if (payload._server_messages) {
@@ -83,7 +91,7 @@ export async function getFormOptions(): Promise<FormOptions> {
 }
 
 export async function ingestOrder(input: IngestOrderInput, idempotencyKey: string): Promise<IngestedOrder> {
-  const result = await request<{ data: IngestedOrder }>('/api/method/cloud_wms.api.orders.ingest', {
+  const result = await request<{ message: { data: IngestedOrder } }>('/api/method/cloud_wms.api.orders.ingest', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -97,5 +105,47 @@ export async function ingestOrder(input: IngestOrderInput, idempotencyKey: strin
       lines: input.lines.map((line) => ({ item_code: line.itemCode, qty: line.quantity, rate: line.rate })),
     }),
   })
-  return result.data
+  return result.message.data
 }
+
+const taskMethod = (name: string) => `/api/method/cloud_wms.api.tasks.${name}`
+
+async function readTasks<T>(name: string, params: Record<string, string> = {}): Promise<T> {
+  const query = new URLSearchParams(params).toString()
+  const result = await request<{ message: { data: T } }>(`${taskMethod(name)}${query ? `?${query}` : ''}`)
+  return result.message.data
+}
+
+async function actOnTask<T = PickTask>(name: string, body: Record<string, unknown>): Promise<T> {
+  const result = await request<{ message: { data: T } }>(taskMethod(name), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idempotency_key: crypto.randomUUID(), ...body }),
+  })
+  return result.message.data
+}
+
+export async function getRoles(): Promise<string[]> {
+  const result = await request<{ message: string[] }>('/api/method/frappe.core.doctype.user.user.get_roles')
+  return result.message
+}
+
+export const listTasks = () => readTasks<TaskListing>('list_tasks')
+
+export const claimTask = (salesOrder: string) => actOnTask('claim', { sales_order: salesOrder })
+
+export const releaseTask = (pickList: string) => actOnTask<{ released: boolean }>('release', { pick_list: pickList })
+
+export const confirmLocation = (pickList: string, row: string, barcode: string) =>
+  actOnTask('confirm_location', { pick_list: pickList, row, barcode })
+
+export const confirmPick = (pickList: string, row: string, itemBarcode: string, qty = 1) =>
+  actOnTask('confirm_pick', { pick_list: pickList, row, item_barcode: itemBarcode, qty })
+
+export const recordShortage = (pickList: string, row: string, reason: string) =>
+  actOnTask('record_shortage', { pick_list: pickList, row, reason })
+
+export const approveShortage = (pickList: string, row: string) =>
+  actOnTask<PickTask | { status: 'cancelled' }>('approve_shortage', { pick_list: pickList, row })
+
+export const completeTask = (pickList: string) => actOnTask('complete', { pick_list: pickList })

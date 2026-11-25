@@ -7,18 +7,17 @@ administrator
 
 ## Implementation status
 
-The repository contains a deliberately constrained UI prototype, not a completed
-external-order workflow.
+The repository implements intake and picking against real ERPNext documents;
+dispatch (Delivery Note) is not yet implemented.
 
 | Implemented in `ui/` | Still proposed / not implemented |
 | --- | --- |
-| ERPNext session login; reads of Company, Customer, Item and Warehouse; submitted Sales Order intake through `cloud_wms.api.orders.ingest` (idempotent, de-duplicated by source + external ID) | External-order connector; Pick List creation/allocation; reservation; server-side task/QA audit records; Delivery Note submission; stock-ledger update |
-| Browser-local self-claim, pick quantity, short-pick QA and mock dispatch state | Custom Frappe API, role/warehouse enforcement for WMS operations, retry-safe workflow commands and carrier integration |
+| ERPNext session login; reads of Company, Customer, Item and Warehouse; submitted Sales Order intake through `cloud_wms.api.orders.ingest` (idempotent, de-duplicated by source + external ID) | External-order connector; Delivery Note submission and partial delivery; stock-ledger update; carrier integration |
+| Pick List creation on claim, self-claim/assignment, scan confirmation, supervisor-approved short picks, submission and stock reservation via `cloud_wms.api.tasks.*` (idempotent, audited) | Warehouse-level permission enforcement |
 | Camera-scanner interface with manual-entry fallback | Guaranteed camera availability or barcode decoding in every browser/device |
 
-The prototype uses standard ERPNext REST resources only for reads and session handling; order intake uses the WMS API.
-Its local workboard state is not ERPNext workflow state and must never be treated
-as a submitted Pick List or Delivery Note.
+The UI uses standard ERPNext REST resources only for reads and session handling;
+intake and picking use the WMS API.
 
 ## 1. Goal
 
@@ -169,7 +168,7 @@ operation has completed and its resulting document state is re-read.
 
 ## 10. Future custom WMS API boundary (contract only)
 
-Implemented so far: `cloud_wms.api.session.context` and `cloud_wms.api.orders.ingest`.
+Implemented so far: `cloud_wms.api.session.context`, `cloud_wms.api.orders.ingest` and `cloud_wms.api.tasks.*` (list, get, claim, release, confirm location/pick, record/approve shortage, complete).
 The UI uses standard ERPNext login and read-only document-resource endpoints, as
 described in `ARCHITECTURE.md`. The remaining WMS
 app/API should offer task-oriented operations rather than generic browser access

@@ -93,3 +93,7 @@ select option { background: #171b20; color: #f5f7f8; }.inline-fields { display: 
 
 @media (max-width: 900px) { .app-shell { padding-left: 0; }.sidebar { position: static; width: auto; padding: 8px 14px; height: auto; border: 0; border-bottom: 1px solid #2a3037; display: flex; overflow-x: auto; }.sidebar-label, .prototype-notice { display: none; }.sidebar button { min-width: max-content; width: auto; }.workspace { padding: 106px 20px 28px; }.topbar { padding: 0 20px; }.topbar-status { display: none; }.metric-grid { grid-template-columns: repeat(2, 1fr); }.task-row { grid-template-columns: 1fr auto; }.task-item { display: none; }.login-shell { grid-template-columns: 1fr; }.login-aside { display: none; } }
 @media (max-width: 620px) { .topbar { height: 62px; }.user-chip div, .user-chip button { display: none; }.sidebar { margin-top: 62px; }.workspace { padding: 30px 14px; }.screen-header { display: grid; }.metric-grid, .order-layout, .pick-layout, .inline-fields { grid-template-columns: 1fr; }.task-row { padding: 14px; }.row-action { grid-column: 1 / -1; width: 100%; }.qa-row, .dispatch-row { align-items: start; flex-direction: column; }.qa-row button, .dispatch-row button { width: 100%; justify-content: center; }.label-mock { width: 100%; }.location-label strong { font-size: 28px; } }
+
+.pick-lines { display: grid; gap: 18px; }
+.pick-lines .pick-card { display: grid; gap: 12px; }
+.pick-lines .confirm-card .primary-button { margin-right: 10px; }

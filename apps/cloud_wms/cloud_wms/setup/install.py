@@ -24,6 +24,33 @@ CUSTOM_FIELDS = {
 			"search_index": 1,
 		},
 	],
+	"Pick List Item": [
+		{
+			"fieldname": "cloud_wms_location_confirmed",
+			"label": "WMS Location Confirmed",
+			"fieldtype": "Check",
+			"insert_after": "picked_qty",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"fieldname": "cloud_wms_shortage_state",
+			"label": "WMS Shortage State",
+			"fieldtype": "Select",
+			"options": "\nPending\nApproved",
+			"insert_after": "cloud_wms_location_confirmed",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"fieldname": "cloud_wms_shortage_reason",
+			"label": "WMS Shortage Reason",
+			"fieldtype": "Small Text",
+			"insert_after": "cloud_wms_shortage_state",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+	],
 	"Warehouse": [
 		{
 			"fieldname": "cloud_wms_location_barcode",
