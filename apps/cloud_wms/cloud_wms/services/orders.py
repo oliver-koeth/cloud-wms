@@ -16,7 +16,7 @@ def ingest_order(source, customer, company, delivery_date, lines, external_order
 	"""Create and submit a Sales Order as the current user; return its WMS-facing summary."""
 	source = _clean_source(source)
 	external_order_id = _clean_external_id(external_order_id)
-	items = _clean_lines(lines, delivery_date)
+	items = clean_lines(lines, delivery_date)
 	if not (customer and company and delivery_date):
 		raise InvalidRequest("customer, company and delivery_date are required.")
 
@@ -62,7 +62,7 @@ def _clean_external_id(value):
 	return value
 
 
-def _clean_lines(lines, delivery_date):
+def clean_lines(lines, delivery_date):
 	if isinstance(lines, str):
 		try:
 			lines = json.loads(lines)

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { approveShortage, claimTask, confirmPick, dispatchTask, getRoles, ingestOrder, listTasks, login } from './erpnext'
+import { amendOrder, approveShortage, claimTask, confirmPick, dispatchTask, getRoles, ingestOrder, listCustomers, listTasks, login, saveLocation } from './erpnext'
 
 const input = {
   source: 'manual',
@@ -115,5 +115,35 @@ describe('session and task calls', () => {
     stubFetch(403, { message: { error: { code: 'FORBIDDEN', message: 'Supervisor only.', next_action: null, correlation_id: 'f1' } } })
 
     await expect(approveShortage('STO-PICK-1', 'row1')).rejects.toThrow('Supervisor only. (ref f1)')
+  })
+})
+
+describe('admin calls', () => {
+  it('reads with only the filters that are set', async () => {
+    const fetchMock = stubFetch(200, { message: { data: [], correlation_id: 'c1' } })
+
+    await listCustomers('', true)
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/method/cloud_wms.api.admin.list_customers?include_disabled=1')
+  })
+
+  it('writes with an idempotency key and the modified stamp for stale checks', async () => {
+    const fetchMock = stubFetch(200, { message: { data: { name: 'SAL-ORD-1-1' }, correlation_id: 'c1' } })
+
+    await amendOrder({ sales_order: 'SAL-ORD-1', delivery_date: '2026-12-01', lines: [{ item_code: 'TOTE', qty: 3 }], modified: '2026-11-26 07:00:00.123456' })
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/method/cloud_wms.api.admin.amend_order')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body)).toMatchObject({ sales_order: 'SAL-ORD-1', modified: '2026-11-26 07:00:00.123456', lines: [{ item_code: 'TOTE', qty: 3 }] })
+    expect(JSON.parse(init.body).idempotency_key).toMatch(/^[0-9a-f-]{36}$/)
+  })
+
+  it('surfaces a stale-record conflict with its next action', async () => {
+    stubFetch(409, { message: { error: { code: 'STALE', message: 'Warehouse X was changed by someone else.', next_action: 'Reload it and apply your change again.', correlation_id: 'r1' } } })
+
+    await expect(saveLocation({ name: 'X', warehouse_name: 'X', is_group: 0, disabled: 0, modified: 'old' })).rejects.toThrow(
+      'Warehouse X was changed by someone else. Reload it and apply your change again. (ref r1)',
+    )
   })
 })

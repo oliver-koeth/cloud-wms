@@ -1,7 +1,7 @@
 import frappe
 from frappe.permissions import setup_custom_perms
 
-ROLES = ("WMS Intake", "WMS Picker", "WMS Dispatch", "WMS Supervisor")
+ROLES = ("WMS Intake", "WMS Picker", "WMS Dispatch", "WMS Supervisor", "WMS Admin")
 
 READ = ("read",)
 WRITE = ("read", "write", "create")
@@ -11,6 +11,8 @@ CANCEL = ("read", "write", "create", "submit", "cancel")
 # submitted documents, so this never removes a completed pick.
 SUBMIT_DELETE = (*SUBMIT, "delete")
 CANCEL_DELETE = (*CANCEL, "delete")
+# Master data is disabled rather than deleted once it is used; ERPNext refuses deletes of linked records.
+WRITE_DELETE = (*WRITE, "delete")
 
 # Standard ERPNext roles are left untouched except that the first custom rule for a doctype freezes
 # its stock DocPerm rows into Custom DocPerm (Frappe behaviour), which this app then extends.
@@ -20,6 +22,7 @@ MATRIX = {
 		"WMS Picker": READ,
 		"WMS Dispatch": READ,
 		"WMS Supervisor": READ,
+		"WMS Admin": CANCEL,
 	},
 	"Pick List": {
 		"WMS Picker": SUBMIT_DELETE,
@@ -34,6 +37,12 @@ MATRIX = {
 		"WMS Dispatch": SUBMIT,
 		"WMS Supervisor": READ,
 	},
+	"Customer": {"WMS Admin": WRITE_DELETE},
+	"Address": {"WMS Admin": WRITE_DELETE},
+	"Contact": {"WMS Admin": WRITE_DELETE},
+	"Item": {"WMS Admin": WRITE_DELETE},
+	"Item Price": {"WMS Admin": WRITE_DELETE},
+	"Warehouse": {"WMS Admin": WRITE_DELETE},
 }
 
 PTYPES = ("read", "write", "create", "submit", "cancel", "delete")

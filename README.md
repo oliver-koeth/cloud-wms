@@ -10,6 +10,7 @@ The first specified journey is the external order flow:
 `external sales order → ERPNext Pick List → WMS picking UI → Delivery Note → stock update`
 
 Its requirements are in [spec/external-order-flow.md](spec/external-order-flow.md).
+The tables it uses, and the proposed admin screens, are in [DATAMODEL.md](DATAMODEL.md).
 
 ## What is here today
 
@@ -71,6 +72,7 @@ Demo users (password `admin` for all; log in by username or email):
 | `Sales` | Sales User, WMS Intake | Creates and submits Sales Orders |
 | `Supervisor` | WMS Supervisor, Picker, Dispatch | Claims/assigns tasks, cancels, dispatches |
 | `Worker` | WMS Picker | Self-claims and picks |
+| `Admin` | WMS Admin | Maintains customers, products, locations; cancels and amends Sales Orders |
 
 Run the app tests with `make app-test`. They use a separate, disposable stack
 (`cloud-wms-test`) and never touch the running site; the first run creates a test
@@ -104,6 +106,7 @@ The first UI slice includes:
   before the Pick List can be submitted. Approval reduces the line to the
   picked quantity (or removes it if nothing was picked).
 - Dispatch: a Dispatch user confirms a submitted Pick List (optional package or carrier reference). The backend creates and submits one ERPNext Delivery Note for the picked quantities, which posts the stock ledger and completes the Pick List. A short-picked order returns to the queue for the remainder.
+- Admin screens (`WMS Admin` role): Sales Orders (cancel, or edit by cancel and amend), Customers (with contact and address), Products (barcodes, selling rate, stock) and Locations (the warehouse tree with bin barcodes). Users and roles stay in ERPNext Desk. See [DATAMODEL.md](DATAMODEL.md).
 
 Intake and picking are real ERPNext documents, enforced server-side by
 `cloud_wms.api.tasks.*`. Dispatch is `cloud_wms.api.dispatch.confirm`. Build and test with
@@ -113,7 +116,7 @@ Intake and picking are real ERPNext documents, enforced server-side by
 
 | Available now | Deliberately not implemented yet |
 | --- | --- |
-| ERPNext session login; master-data reads; submitted Sales Order intake; Pick List creation on claim, assignment, scan confirmation, short-pick approval, submission and stock reservation, Delivery Note dispatch with stock-ledger posting and partial delivery (all idempotent, audited, role-checked) | External-order connector; carrier integration |
+| ERPNext session login; master-data reads; submitted Sales Order intake; Pick List creation on claim, assignment, scan confirmation, short-pick approval, submission and stock reservation, Delivery Note dispatch with stock-ledger posting and partial delivery; admin CRUD for customers, products, locations and Sales Order cancel/amend (all idempotent, audited, role-checked) | External-order connector; carrier integration; location label printing; stock adjustments in the UI |
 
 The camera scanner asks the browser for camera permission and uses the browser's
 `BarcodeDetector` capability where available. A scanner-input/manual-entry

@@ -82,7 +82,7 @@ idempotency service commits mid-request.
 | WMS UI | Scanner-led task screens, accessible feedback, local interaction state | Stock posting, administrative credentials, ERPNext business rules |
 | WMS app/API | Authentication/authorization, request validation, idempotency, workflow translation | Direct stock-ledger writes or client-trusted permissions |
 | ERPNext | Pick lists, delivery notes, reservations, validation, stock ledger and accounting integration | WMS-specific interaction design |
-| Desk | Administrator setup and exception handling | Everyday operator workflow |
+| Desk | Administrator setup, users and roles, exception handling | Everyday operator workflow and routine master data (the WMS Admin screens cover customers, products, locations and Sales Order amendments) |
 
 ## Data and security boundaries
 
@@ -93,7 +93,8 @@ idempotency service commits mid-request.
 - Actions that may be retried by a scanner or network client need an idempotency
   key recorded server-side.
 - Keep ERPNext canonical. Do not create a parallel inventory ledger in the UI or
-  WMS app.
+  WMS app. [DATAMODEL.md](DATAMODEL.md) lists the ERPNext tables, the WMS custom
+  fields and doctypes, and the proposed admin screens.
 - One tenant should eventually map to an isolated Frappe site/database. ERPNext
   `Company` is not a replacement for SaaS tenant isolation.
 

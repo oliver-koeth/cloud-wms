@@ -4,7 +4,7 @@ import frappe
 
 from cloud_wms.services import audit, errors, idempotency
 
-WMS_ROLES = ("WMS Intake", "WMS Picker", "WMS Dispatch", "WMS Supervisor")
+WMS_ROLES = ("WMS Intake", "WMS Picker", "WMS Dispatch", "WMS Supervisor", "WMS Admin")
 
 
 def wms_endpoint(operation, roles=(), idempotent=False):
