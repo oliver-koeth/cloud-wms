@@ -11,6 +11,8 @@ The first specified journey is the external order flow:
 
 Its requirements are in [spec/external-order-flow.md](spec/external-order-flow.md).
 The tables it uses, and the proposed admin screens, are in [DATAMODEL.md](DATAMODEL.md).
+The proposed multi-tenant AWS hosting model and a rough cost estimate are in
+[MULTITENANCY.md](MULTITENANCY.md).
 
 ## What is here today
 

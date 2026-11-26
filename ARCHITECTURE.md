@@ -96,7 +96,9 @@ idempotency service commits mid-request.
   WMS app. [DATAMODEL.md](DATAMODEL.md) lists the ERPNext tables, the WMS custom
   fields and doctypes, and the proposed admin screens.
 - One tenant should eventually map to an isolated Frappe site/database. ERPNext
-  `Company` is not a replacement for SaaS tenant isolation.
+  `Company` is not a replacement for SaaS tenant isolation. The proposed AWS
+  hosting model, its security controls and a rough cost estimate are in
+  [MULTITENANCY.md](MULTITENANCY.md).
 
 ## First vertical slice
 
