@@ -4,7 +4,11 @@ import type {
   CustomerDetail,
   CustomerInput,
   CustomerSummary,
+  DeliveryNoteDetail,
+  DeliveryNoteSummary,
   DispatchReceipt,
+  EventFilters,
+  EventLog,
   FormOptions,
   IngestOrderInput,
   IngestedOrder,
@@ -15,9 +19,18 @@ import type {
   LocationRow,
   OrderDetail,
   OrderSummary,
+  PickListDetail,
+  PickListSummary,
   PickTask,
+  ReferenceDoctype,
+  ReferenceList,
   SessionUser,
+  StockLevel,
+  StockPosting,
+  StockPostingInput,
   TaskListing,
+  TreeReference,
+  WmsSettings,
 } from '../types'
 
 interface WmsError {
@@ -221,3 +234,25 @@ export const getOrder = (name: string) => adminRead<OrderDetail>('get_order', { 
 export const cancelOrder = (salesOrder: string, modified?: string) =>
   adminWrite<OrderDetail>('cancel_order', { sales_order: salesOrder, modified })
 export const amendOrder = (input: AmendOrderInput) => adminWrite<OrderDetail>('amend_order', input)
+
+export const listStock = (search?: string, warehouse?: string) => adminRead<StockLevel[]>('list_stock', { search, warehouse })
+export const listPostings = (search?: string) => adminRead<StockPosting[]>('list_postings', { search })
+export const postStock = (input: StockPostingInput) => adminWrite<StockPosting>('post_stock', input)
+export const cancelPosting = (posting: Pick<StockPosting, 'doctype' | 'name' | 'modified'>, reason?: string) =>
+  adminWrite<StockPosting>('cancel_posting', { doctype: posting.doctype, name: posting.name, modified: posting.modified, reason })
+
+export const listPickLists = (search?: string, status?: string) => adminRead<PickListSummary[]>('list_pick_lists', { search, status })
+export const getPickList = (name: string) => adminRead<PickListDetail>('get_pick_list', { name })
+export const cancelPickList = (pickList: string, modified?: string, reason?: string) =>
+  adminWrite<PickListDetail>('cancel_pick_list', { pick_list: pickList, modified, reason })
+export const listDeliveryNotes = (search?: string, status?: string) =>
+  adminRead<DeliveryNoteSummary[]>('list_delivery_notes', { search, status })
+export const getDeliveryNote = (name: string) => adminRead<DeliveryNoteDetail>('get_delivery_note', { name })
+export const cancelDeliveryNote = (deliveryNote: string, modified?: string, reason?: string) =>
+  adminWrite<DeliveryNoteDetail>('cancel_delivery_note', { delivery_note: deliveryNote, modified, reason })
+
+export const listEvents = (filters: EventFilters = {}) => adminRead<EventLog>('list_events', { ...filters })
+export const listReference = (doctype: ReferenceDoctype) => adminRead<ReferenceList>('list_reference', { doctype })
+export const createReference = (input: { doctype: TreeReference; name: string; parent?: string; is_group: number }) =>
+  adminWrite<{ name: string; parent: string; is_group: number }>('create_reference', input)
+export const getSettings = () => adminRead<WmsSettings>('settings')

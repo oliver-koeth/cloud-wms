@@ -82,7 +82,7 @@ idempotency service commits mid-request.
 | WMS UI | Scanner-led task screens, accessible feedback, local interaction state | Stock posting, administrative credentials, ERPNext business rules |
 | WMS app/API | Authentication/authorization, request validation, idempotency, workflow translation | Direct stock-ledger writes or client-trusted permissions |
 | ERPNext | Pick lists, delivery notes, reservations, validation, stock ledger and accounting integration | WMS-specific interaction design |
-| Desk | Administrator setup, users and roles, exception handling | Everyday operator workflow and routine master data (the WMS Admin screens cover customers, products, locations and Sales Order amendments) |
+| Desk | Administrator setup, users and roles, settings changes, closing or holding orders | Everyday operator workflow, routine master data and routine exceptions (the WMS Admin screens cover customers, products, locations, reference groups, stock postings, Sales Order amendments and Pick List or Delivery Note cancellation) |
 
 ## Data and security boundaries
 

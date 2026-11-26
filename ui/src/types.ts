@@ -1,4 +1,13 @@
-export type AdminScreen = 'admin-orders' | 'admin-customers' | 'admin-products' | 'admin-locations'
+export type AdminScreen =
+  | 'admin-orders'
+  | 'admin-customers'
+  | 'admin-products'
+  | 'admin-locations'
+  | 'admin-stock'
+  | 'admin-documents'
+  | 'admin-audit'
+  | 'admin-reference'
+  | 'admin-settings'
 
 export type Screen = 'operations' | 'create-order' | 'pick' | 'qa' | 'dispatch' | AdminScreen
 
@@ -252,4 +261,170 @@ export interface AmendOrderInput {
   delivery_date: string
   lines: Array<{ item_code: string; qty: number; rate?: number }>
   modified?: string
+}
+
+export interface StockLevel {
+  item_code: string
+  item_name: string | null
+  warehouse: string
+  barcode: string | null
+  actual_qty: number
+  reserved_stock: number
+  projected_qty: number
+  stock_uom: string | null
+  valuation_rate: number
+}
+
+export type StockPurpose = 'receipt' | 'transfer' | 'count'
+
+export interface StockPosting {
+  doctype: 'Stock Entry' | 'Stock Reconciliation'
+  name: string
+  purpose: string
+  posting_date: string
+  posting_time: string
+  docstatus: number
+  owner: string
+  remarks: string | null
+  modified: string
+  item_code: string
+  qty: number
+  from_warehouse: string | null
+  to_warehouse: string | null
+}
+
+export interface StockPostingInput {
+  purpose: StockPurpose
+  item_code: string
+  qty: number
+  to_warehouse: string
+  from_warehouse?: string
+  rate?: number
+  reason?: string
+}
+
+export interface Blocker {
+  message: string
+  next_action: string | null
+}
+
+export interface DocumentRef {
+  name: string
+  docstatus: number
+  status: string
+}
+
+export interface PickListSummary {
+  name: string
+  status: string
+  docstatus: number
+  customer: string | null
+  company: string
+  owner: string
+  creation: string
+  modified: string
+  sales_orders: string[]
+}
+
+export interface PickListDetail extends PickListSummary {
+  assignees: string[]
+  lines: Array<{
+    row: number
+    item_code: string
+    item_name: string | null
+    warehouse: string
+    qty: number
+    picked_qty: number
+    uom: string | null
+    sales_order: string | null
+    shortage_state: string | null
+  }>
+  delivery_notes: DocumentRef[]
+  cancel_blocker: Blocker | null
+}
+
+export interface DeliveryNoteSummary {
+  name: string
+  status: string
+  docstatus: number
+  customer: string
+  customer_name: string | null
+  company: string
+  posting_date: string
+  total_qty: number
+  is_return: number
+  owner: string
+  creation: string
+  modified: string
+  sales_orders: string[]
+  pick_lists: string[]
+}
+
+export interface DeliveryNoteDetail extends DeliveryNoteSummary {
+  lines: Array<{
+    row: number
+    item_code: string
+    item_name: string | null
+    warehouse: string
+    qty: number
+    uom: string | null
+    sales_order: string | null
+    pick_list: string | null
+  }>
+  reference: string | null
+  cancel_blocker: Blocker | null
+}
+
+export interface TaskEvent {
+  name: string
+  creation: string
+  event_type: string
+  actor: string
+  correlation_id: string | null
+  idempotency_key: string | null
+  sales_order: string | null
+  pick_list: string | null
+  pick_list_item: string | null
+  delivery_note: string | null
+  item_code: string | null
+  warehouse: string | null
+  scanned_value: string | null
+  qty: number | null
+  reason: string | null
+  details: string | null
+}
+
+export interface EventFilters {
+  event_type?: string
+  actor?: string
+  sales_order?: string
+  pick_list?: string
+  delivery_note?: string
+  correlation_id?: string
+  from_date?: string
+  to_date?: string
+}
+
+export interface EventLog {
+  events: TaskEvent[]
+  event_types: string[]
+  limit: number
+}
+
+export type TreeReference = 'Customer Group' | 'Territory' | 'Item Group'
+export type ReferenceDoctype = TreeReference | 'UOM' | 'Price List'
+
+export interface ReferenceList {
+  doctype: ReferenceDoctype
+  tree: boolean
+  rows: Array<Record<string, string | number | null> & { name: string }>
+}
+
+export interface WmsSettings {
+  stock: Record<string, string | number | null>
+  selling: Record<string, string | number | null>
+  enforced: Record<string, number>
+  companies: Array<{ name: string; abbr: string; default_currency: string | null; country: string | null }>
+  default_company: string | null
+  versions: Record<string, string | null>
 }

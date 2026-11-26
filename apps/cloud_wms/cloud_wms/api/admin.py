@@ -1,9 +1,11 @@
 import frappe
 
-from cloud_wms.services import admin
+from cloud_wms.services import admin, admin_documents, admin_reference, admin_stock
 from cloud_wms.services.endpoint import wms_endpoint
 
 ADMIN = ("WMS Admin",)
+# Exception handling on Pick Lists and Delivery Notes is shared with supervisors.
+DOCUMENTS = ("WMS Admin", "WMS Supervisor")
 
 
 @frappe.whitelist(methods=["GET"])
@@ -159,3 +161,131 @@ def amend_order(
 	return admin.amend_order(
 		sales_order, lines, delivery_date=delivery_date, customer=customer, modified=modified
 	)
+
+
+# Stock (screen 5)
+
+
+@frappe.whitelist(methods=["GET"])
+@wms_endpoint("admin.list_stock", roles=ADMIN)
+def list_stock(search=None, warehouse=None):
+	return admin_stock.list_stock(search, warehouse)
+
+
+@frappe.whitelist(methods=["GET"])
+@wms_endpoint("admin.list_postings", roles=ADMIN)
+def list_postings(search=None):
+	return admin_stock.list_postings(search)
+
+
+@frappe.whitelist(methods=["POST"])
+@wms_endpoint("admin.post_stock", roles=ADMIN, idempotent=True)
+def post_stock(
+	idempotency_key=None,
+	purpose=None,
+	item_code=None,
+	qty=None,
+	to_warehouse=None,
+	from_warehouse=None,
+	rate=None,
+	reason=None,
+):
+	return admin_stock.post_stock(
+		purpose,
+		item_code,
+		qty,
+		to_warehouse=to_warehouse,
+		from_warehouse=from_warehouse,
+		rate=rate,
+		reason=reason,
+	)
+
+
+@frappe.whitelist(methods=["POST"])
+@wms_endpoint("admin.cancel_posting", roles=ADMIN, idempotent=True)
+def cancel_posting(idempotency_key=None, doctype=None, name=None, modified=None, reason=None):
+	return admin_stock.cancel_posting(doctype, name, modified=modified, reason=reason)
+
+
+# Pick Lists and Delivery Notes (screen 7)
+
+
+@frappe.whitelist(methods=["GET"])
+@wms_endpoint("admin.list_pick_lists", roles=DOCUMENTS)
+def list_pick_lists(search=None, status=None):
+	return admin_documents.list_pick_lists(search, status)
+
+
+@frappe.whitelist(methods=["GET"])
+@wms_endpoint("admin.get_pick_list", roles=DOCUMENTS)
+def get_pick_list(name=None):
+	return admin_documents.get_pick_list(name)
+
+
+@frappe.whitelist(methods=["POST"])
+@wms_endpoint("admin.cancel_pick_list", roles=DOCUMENTS, idempotent=True)
+def cancel_pick_list(idempotency_key=None, pick_list=None, modified=None, reason=None):
+	return admin_documents.cancel_pick_list(pick_list, modified=modified, reason=reason)
+
+
+@frappe.whitelist(methods=["GET"])
+@wms_endpoint("admin.list_delivery_notes", roles=DOCUMENTS)
+def list_delivery_notes(search=None, status=None):
+	return admin_documents.list_delivery_notes(search, status)
+
+
+@frappe.whitelist(methods=["GET"])
+@wms_endpoint("admin.get_delivery_note", roles=DOCUMENTS)
+def get_delivery_note(name=None):
+	return admin_documents.get_delivery_note(name)
+
+
+@frappe.whitelist(methods=["POST"])
+@wms_endpoint("admin.cancel_delivery_note", roles=DOCUMENTS, idempotent=True)
+def cancel_delivery_note(idempotency_key=None, delivery_note=None, modified=None, reason=None):
+	return admin_documents.cancel_delivery_note(delivery_note, modified=modified, reason=reason)
+
+
+# Audit log, reference lists, settings (screens 8-10)
+
+
+@frappe.whitelist(methods=["GET"])
+@wms_endpoint("admin.list_events", roles=ADMIN)
+def list_events(
+	event_type=None,
+	actor=None,
+	sales_order=None,
+	pick_list=None,
+	delivery_note=None,
+	correlation_id=None,
+	from_date=None,
+	to_date=None,
+):
+	return admin_reference.list_events(
+		from_date=from_date,
+		to_date=to_date,
+		event_type=event_type,
+		actor=actor,
+		sales_order=sales_order,
+		pick_list=pick_list,
+		delivery_note=delivery_note,
+		correlation_id=correlation_id,
+	)
+
+
+@frappe.whitelist(methods=["GET"])
+@wms_endpoint("admin.list_reference", roles=ADMIN)
+def list_reference(doctype=None):
+	return admin_reference.list_reference(doctype)
+
+
+@frappe.whitelist(methods=["POST"])
+@wms_endpoint("admin.create_reference", roles=ADMIN, idempotent=True)
+def create_reference(idempotency_key=None, doctype=None, name=None, parent=None, is_group=0):
+	return admin_reference.create_reference(doctype, name, parent=parent, is_group=is_group)
+
+
+@frappe.whitelist(methods=["GET"])
+@wms_endpoint("admin.settings", roles=ADMIN)
+def settings():
+	return admin_reference.settings()

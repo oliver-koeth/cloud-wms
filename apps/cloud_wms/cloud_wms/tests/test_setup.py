@@ -57,6 +57,12 @@ class TestSetup(IntegrationTestCase):
 		self.assertEqual(_perm("Sales Order", "WMS Admin").cancel, 1)
 		self.assertIsNone(_perm("Customer", "WMS Supervisor"))
 
+		for doctype in ("Pick List", "Delivery Note", "Stock Entry", "Stock Reconciliation"):
+			self.assertEqual(_perm(doctype, "WMS Admin").cancel, 1, doctype)
+		self.assertEqual(_perm("Delivery Note", "WMS Supervisor").cancel, 1)
+		self.assertEqual(_perm("Customer Group", "WMS Admin").create, 1)
+		self.assertIsNone(_perm("Stock Entry", "WMS Supervisor"))
+
 	def test_standard_erpnext_permissions_survive_freeze(self):
 		self.assertTrue(frappe.db.exists("Custom DocPerm", {"parent": "Pick List", "role": "Stock User"}))
 		self.assertTrue(frappe.db.exists("Custom DocPerm", {"parent": "Sales Order", "role": "Sales User"}))

@@ -28,21 +28,29 @@ MATRIX = {
 		"WMS Picker": SUBMIT_DELETE,
 		"WMS Dispatch": READ,
 		"WMS Supervisor": CANCEL_DELETE,
+		"WMS Admin": CANCEL,
 	},
 	"Stock Reservation Entry": {
 		"WMS Picker": SUBMIT,
 		"WMS Supervisor": CANCEL,
+		"WMS Admin": CANCEL,
 	},
 	"Delivery Note": {
 		"WMS Dispatch": SUBMIT,
-		"WMS Supervisor": READ,
+		"WMS Supervisor": CANCEL,
+		"WMS Admin": CANCEL,
 	},
+	"Stock Entry": {"WMS Admin": CANCEL},
+	"Stock Reconciliation": {"WMS Admin": CANCEL},
 	"Customer": {"WMS Admin": WRITE_DELETE},
 	"Address": {"WMS Admin": WRITE_DELETE},
 	"Contact": {"WMS Admin": WRITE_DELETE},
 	"Item": {"WMS Admin": WRITE_DELETE},
 	"Item Price": {"WMS Admin": WRITE_DELETE},
 	"Warehouse": {"WMS Admin": WRITE_DELETE},
+	"Customer Group": {"WMS Admin": WRITE},
+	"Territory": {"WMS Admin": WRITE},
+	"Item Group": {"WMS Admin": WRITE},
 }
 
 PTYPES = ("read", "write", "create", "submit", "cancel", "delete")

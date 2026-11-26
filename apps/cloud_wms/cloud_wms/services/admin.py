@@ -424,9 +424,6 @@ def list_locations(include_disabled=1):
 		row["on_hand"] = sum(
 			flt(on_hand.get(other.name)) for other in rows if row.lft <= other.lft and other.rgt <= row.rgt
 		)
-	for row in rows:
-		row.pop("lft")
-		row.pop("rgt")
 	return rows
 
 

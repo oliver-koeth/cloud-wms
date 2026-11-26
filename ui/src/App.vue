@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Button, FrappeUIProvider } from 'frappe-ui'
+import AdminAudit from './components/AdminAudit.vue'
 import AdminCustomers from './components/AdminCustomers.vue'
+import AdminDocuments from './components/AdminDocuments.vue'
 import AdminLocations from './components/AdminLocations.vue'
 import AdminOrders from './components/AdminOrders.vue'
 import AdminProducts from './components/AdminProducts.vue'
+import AdminReference from './components/AdminReference.vue'
+import AdminSettings from './components/AdminSettings.vue'
+import AdminStock from './components/AdminStock.vue'
 import CameraScanner from './components/CameraScanner.vue'
 import LoginPanel from './components/LoginPanel.vue'
 import OrderForm from './components/OrderForm.vue'
@@ -203,12 +208,21 @@ watch(selectedTask, (task) => {
         <button :class="{ active: activeScreen === 'pick' }" :disabled="!selectedTask" @click="setScreen('pick')"><i>03</i>Pick</button>
         <button :class="{ active: activeScreen === 'qa' }" @click="setScreen('qa')"><i>04</i>QA review <b v-if="qaTasks.length">{{ qaTasks.length }}</b></button>
         <button :class="{ active: activeScreen === 'dispatch' }" @click="setScreen('dispatch')"><i>05</i>Dispatch</button>
-        <template v-if="isAdmin">
+        <template v-if="isAdmin || isSupervisor">
           <p class="sidebar-label admin-label">ADMIN</p>
-          <button :class="{ active: activeScreen === 'admin-orders' }" @click="setScreen('admin-orders')"><i>A1</i>Sales Orders</button>
-          <button :class="{ active: activeScreen === 'admin-customers' }" @click="setScreen('admin-customers')"><i>A2</i>Customers</button>
-          <button :class="{ active: activeScreen === 'admin-products' }" @click="setScreen('admin-products')"><i>A3</i>Products</button>
-          <button :class="{ active: activeScreen === 'admin-locations' }" @click="setScreen('admin-locations')"><i>A4</i>Locations</button>
+          <template v-if="isAdmin">
+            <button :class="{ active: activeScreen === 'admin-orders' }" @click="setScreen('admin-orders')"><i>A1</i>Sales Orders</button>
+            <button :class="{ active: activeScreen === 'admin-customers' }" @click="setScreen('admin-customers')"><i>A2</i>Customers</button>
+            <button :class="{ active: activeScreen === 'admin-products' }" @click="setScreen('admin-products')"><i>A3</i>Products</button>
+            <button :class="{ active: activeScreen === 'admin-locations' }" @click="setScreen('admin-locations')"><i>A4</i>Locations</button>
+            <button :class="{ active: activeScreen === 'admin-stock' }" @click="setScreen('admin-stock')"><i>A5</i>Stock</button>
+          </template>
+          <button :class="{ active: activeScreen === 'admin-documents' }" @click="setScreen('admin-documents')"><i>A7</i>Picks &amp; Deliveries</button>
+          <template v-if="isAdmin">
+            <button :class="{ active: activeScreen === 'admin-audit' }" @click="setScreen('admin-audit')"><i>A8</i>Audit log</button>
+            <button :class="{ active: activeScreen === 'admin-reference' }" @click="setScreen('admin-reference')"><i>A9</i>Reference lists</button>
+            <button :class="{ active: activeScreen === 'admin-settings' }" @click="setScreen('admin-settings')"><i>A10</i>Settings</button>
+          </template>
         </template>
         <div class="system-notice"><span>ERPNEXT</span><p>Sales Orders, Pick Lists and Delivery Notes are real ERPNext documents. Dispatch posts the stock ledger.</p></div>
       </aside>
@@ -234,6 +248,11 @@ watch(selectedTask, (task) => {
         <AdminCustomers v-else-if="activeScreen === 'admin-customers'" />
         <AdminProducts v-else-if="activeScreen === 'admin-products'" />
         <AdminLocations v-else-if="activeScreen === 'admin-locations'" />
+        <AdminStock v-else-if="activeScreen === 'admin-stock'" />
+        <AdminDocuments v-else-if="activeScreen === 'admin-documents'" />
+        <AdminAudit v-else-if="activeScreen === 'admin-audit'" />
+        <AdminReference v-else-if="activeScreen === 'admin-reference'" />
+        <AdminSettings v-else-if="activeScreen === 'admin-settings'" />
 
         <section v-else-if="activeScreen === 'pick'" class="screen-grid">
           <div class="screen-header"><div><p class="eyebrow">Picker workflow</p><h1>{{ selectedTask?.sales_order || 'Select a task' }}</h1><p>Scan each shelf, scan the item, and confirm the quantity. Report a shortage if the shelf is short.</p></div><span v-if="selectedTask" class="status-chip" :class="statusClass(selectedTask.status)">{{ statusLabel[selectedTask.status] }}</span></div>
