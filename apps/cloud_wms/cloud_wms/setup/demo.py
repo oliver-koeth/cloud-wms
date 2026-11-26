@@ -25,6 +25,11 @@ DEMO_USERS = {
 		"first_name": "Worker",
 		"roles": ("WMS Picker",),
 	},
+	"admin@cloud-wms.local": {
+		"username": "Admin",
+		"first_name": "Admin",
+		"roles": ("WMS Admin",),
+	},
 }
 
 # (warehouse_name, parent warehouse_name, barcode); parents must precede children.

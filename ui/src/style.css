@@ -99,3 +99,29 @@ select option { background: #171b20; color: #f5f7f8; }.inline-fields { display: 
 .pick-lines .confirm-card .primary-button { margin-right: 10px; }
 
 .dispatch-actions { display: flex; align-items: center; gap: 12px; }.dispatch-reference { background: #14181c; border: 1px solid #2a3037; color: #f5f7f8; padding: 9px 12px; border-radius: 6px; min-width: 260px; font-size: 13px; }
+
+.sidebar-label.admin-label { margin-top: 22px; }
+.admin-layout { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
+.admin-list { overflow: hidden; max-height: calc(100vh - 260px); overflow-y: auto; }
+.admin-search { position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 14px; background: #101317; border-bottom: 1px solid #2a3037; }
+.admin-search label, .admin-search select { margin: 0; width: auto; }
+.admin-row { display: block; width: 100%; text-align: left; color: #f5f7f8; background: transparent; border: 0; border-bottom: 1px solid #2a3037; padding: 12px 16px; }
+.admin-row:hover, .admin-row.active { background: #171b20; }
+.admin-row.active { box-shadow: inset 2px 0 0 #ffd500; }
+.admin-row.disabled strong { color: #949ca5; text-decoration: line-through; }
+.admin-row strong, .admin-row small { display: block; }
+.admin-row strong { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.admin-row small { color: #949ca5; font-size: 12px; margin-top: 4px; }
+.admin-row code, .admin-lines code { color: #ffd500; font-size: 11px; }
+.admin-row .status-chip { margin-left: auto; padding: 2px 8px; font-size: 10px; }
+.admin-empty { padding: 20px 16px; }
+.admin-form { padding: 24px; }
+.admin-form h2 { margin: 4px 0 6px; }
+.check { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.check input { width: auto; }
+.admin-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.admin-stock, .admin-lines { border: 1px solid #2a3037; padding: 12px; margin-bottom: 16px; }
+.admin-stock p:not(.eyebrow), .admin-lines p { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0 0 8px; font-size: 13px; }
+.admin-stock small, .admin-lines small { grid-column: 1 / -1; color: #949ca5; }
+.link-button { color: #ffd500; background: transparent; border: 0; padding: 0; text-decoration: underline; }
+@media (max-width: 900px) { .admin-layout { grid-template-columns: 1fr; } .admin-list { max-height: 360px; } }

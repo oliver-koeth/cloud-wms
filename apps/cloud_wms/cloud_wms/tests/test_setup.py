@@ -52,6 +52,11 @@ class TestSetup(IntegrationTestCase):
 		self.assertEqual(_perm("Delivery Note", "WMS Dispatch").submit, 1)
 		self.assertIsNone(_perm("Delivery Note", "WMS Picker"))
 
+		admin = _perm("Customer", "WMS Admin")
+		self.assertEqual((admin.create, admin.write, admin.delete), (1, 1, 1))
+		self.assertEqual(_perm("Sales Order", "WMS Admin").cancel, 1)
+		self.assertIsNone(_perm("Customer", "WMS Supervisor"))
+
 	def test_standard_erpnext_permissions_survive_freeze(self):
 		self.assertTrue(frappe.db.exists("Custom DocPerm", {"parent": "Pick List", "role": "Stock User"}))
 		self.assertTrue(frappe.db.exists("Custom DocPerm", {"parent": "Sales Order", "role": "Sales User"}))
@@ -66,6 +71,7 @@ class TestDemoUsers(IntegrationTestCase):
 			"sales@cloud-wms.local": ("Sales", {"Sales User", "WMS Intake"}),
 			"supervisor@cloud-wms.local": ("Supervisor", {"WMS Supervisor", "WMS Picker", "WMS Dispatch"}),
 			"worker@cloud-wms.local": ("Worker", {"WMS Picker"}),
+			"admin@cloud-wms.local": ("Admin", {"WMS Admin"}),
 		}
 		for email, (username, roles) in expected.items():
 			self.assertEqual(frappe.db.get_value("User", email, "username"), username)

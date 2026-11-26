@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Button, FrappeUIProvider } from 'frappe-ui'
+import AdminCustomers from './components/AdminCustomers.vue'
+import AdminLocations from './components/AdminLocations.vue'
+import AdminOrders from './components/AdminOrders.vue'
+import AdminProducts from './components/AdminProducts.vue'
 import CameraScanner from './components/CameraScanner.vue'
 import LoginPanel from './components/LoginPanel.vue'
 import OrderForm from './components/OrderForm.vue'
@@ -41,6 +45,8 @@ const canSeeTasks = computed(() =>
 )
 const canDispatch = computed(() => !!user.value?.roles?.some((role) => ['WMS Dispatch', 'System Manager'].includes(role)))
 const isSupervisor = computed(() => !!user.value?.roles?.some((role) => ['WMS Supervisor', 'System Manager'].includes(role)))
+const isAdmin = computed(() => !!user.value?.roles?.some((role) => ['WMS Admin', 'System Manager'].includes(role)))
+const roleLabel = computed(() => (isSupervisor.value ? 'Supervisor' : canSeeTasks.value ? 'Warehouse operator' : isAdmin.value ? 'Admin' : 'Sales'))
 const activeTasks = computed(() => listing.value.active.filter((task) => task.status !== 'dispatched'))
 const selectedTask = computed(() => listing.value.active.find((task) => task.pick_list === selectedPickList.value))
 const qaTasks = computed(() => listing.value.active.filter((task) => task.status === 'qa_required'))
@@ -86,7 +92,7 @@ async function run<T>(action: () => Promise<T>, success?: string): Promise<T | u
 function setScreen(screen: Screen) {
   activeScreen.value = screen
   notify('')
-  if (screen !== 'create-order') void refresh()
+  if (screen === 'operations' || screen === 'pick' || screen === 'qa' || screen === 'dispatch') void refresh()
 }
 
 function openTask(task: PickTask, screen: Screen) {
@@ -97,6 +103,7 @@ function openTask(task: PickTask, screen: Screen) {
 async function authenticated(session: SessionUser) {
   notify('')
   user.value = { ...session, roles: await getRoles().catch(() => []) }
+  if (isAdmin.value && !canSeeTasks.value) activeScreen.value = 'admin-orders'
   await refresh()
 }
 
@@ -186,7 +193,7 @@ watch(selectedTask, (task) => {
       <header class="topbar">
         <button class="brand-lockup brand-button" @click="setScreen('operations')"><span class="brand-mark">›</span> CLOUD WMS</button>
         <div class="topbar-status"><span class="status-dot"></span> ERPNext session active</div>
-        <div class="user-chip"><span>{{ user.fullName.slice(0, 1).toUpperCase() }}</span><div><strong>{{ user.fullName }}</strong><small>{{ isSupervisor ? 'Supervisor' : 'Warehouse operator' }}</small></div><button @click="signOut">Sign out</button></div>
+        <div class="user-chip"><span>{{ user.fullName.slice(0, 1).toUpperCase() }}</span><div><strong>{{ user.fullName }}</strong><small>{{ roleLabel }}</small></div><button @click="signOut">Sign out</button></div>
       </header>
 
       <aside class="sidebar">
@@ -196,6 +203,13 @@ watch(selectedTask, (task) => {
         <button :class="{ active: activeScreen === 'pick' }" :disabled="!selectedTask" @click="setScreen('pick')"><i>03</i>Pick</button>
         <button :class="{ active: activeScreen === 'qa' }" @click="setScreen('qa')"><i>04</i>QA review <b v-if="qaTasks.length">{{ qaTasks.length }}</b></button>
         <button :class="{ active: activeScreen === 'dispatch' }" @click="setScreen('dispatch')"><i>05</i>Dispatch</button>
+        <template v-if="isAdmin">
+          <p class="sidebar-label admin-label">ADMIN</p>
+          <button :class="{ active: activeScreen === 'admin-orders' }" @click="setScreen('admin-orders')"><i>A1</i>Sales Orders</button>
+          <button :class="{ active: activeScreen === 'admin-customers' }" @click="setScreen('admin-customers')"><i>A2</i>Customers</button>
+          <button :class="{ active: activeScreen === 'admin-products' }" @click="setScreen('admin-products')"><i>A3</i>Products</button>
+          <button :class="{ active: activeScreen === 'admin-locations' }" @click="setScreen('admin-locations')"><i>A4</i>Locations</button>
+        </template>
         <div class="system-notice"><span>ERPNEXT</span><p>Sales Orders, Pick Lists and Delivery Notes are real ERPNext documents. Dispatch posts the stock ledger.</p></div>
       </aside>
 
@@ -216,6 +230,10 @@ watch(selectedTask, (task) => {
         </section>
 
         <OrderForm v-else-if="activeScreen === 'create-order'" @created="created" />
+        <AdminOrders v-else-if="activeScreen === 'admin-orders'" />
+        <AdminCustomers v-else-if="activeScreen === 'admin-customers'" />
+        <AdminProducts v-else-if="activeScreen === 'admin-products'" />
+        <AdminLocations v-else-if="activeScreen === 'admin-locations'" />
 
         <section v-else-if="activeScreen === 'pick'" class="screen-grid">
           <div class="screen-header"><div><p class="eyebrow">Picker workflow</p><h1>{{ selectedTask?.sales_order || 'Select a task' }}</h1><p>Scan each shelf, scan the item, and confirm the quantity. Report a shortage if the shelf is short.</p></div><span v-if="selectedTask" class="status-chip" :class="statusClass(selectedTask.status)">{{ statusLabel[selectedTask.status] }}</span></div>

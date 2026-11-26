@@ -1,4 +1,24 @@
-import type { DispatchReceipt, FormOptions, IngestOrderInput, IngestedOrder, PickTask, SessionUser, TaskListing } from '../types'
+import type {
+  AdminOptions,
+  AmendOrderInput,
+  CustomerDetail,
+  CustomerInput,
+  CustomerSummary,
+  DispatchReceipt,
+  FormOptions,
+  IngestOrderInput,
+  IngestedOrder,
+  ItemDetail,
+  ItemInput,
+  ItemSummary,
+  LocationInput,
+  LocationRow,
+  OrderDetail,
+  OrderSummary,
+  PickTask,
+  SessionUser,
+  TaskListing,
+} from '../types'
 
 interface WmsError {
   code?: string
@@ -158,3 +178,46 @@ export const approveShortage = (pickList: string, row: string) =>
   actOnTask<PickTask | { status: 'cancelled' }>('approve_shortage', { pick_list: pickList, row })
 
 export const completeTask = (pickList: string) => actOnTask('complete', { pick_list: pickList })
+
+const adminMethod = (name: string) => `/api/method/cloud_wms.api.admin.${name}`
+
+async function adminRead<T>(name: string, params: Record<string, string | number | undefined> = {}): Promise<T> {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) if (value !== undefined && value !== '') query.set(key, String(value))
+  const suffix = query.toString()
+  const result = await request<{ message: { data: T } }>(`${adminMethod(name)}${suffix ? `?${suffix}` : ''}`)
+  return result.message.data
+}
+
+async function adminWrite<T>(name: string, body: object): Promise<T> {
+  const result = await request<{ message: { data: T } }>(adminMethod(name), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idempotency_key: crypto.randomUUID(), ...body }),
+  })
+  return result.message.data
+}
+
+export const getAdminOptions = () => adminRead<AdminOptions>('options')
+
+export const listCustomers = (search?: string, includeDisabled = false) =>
+  adminRead<CustomerSummary[]>('list_customers', { search, include_disabled: Number(includeDisabled) })
+export const getCustomer = (name: string) => adminRead<CustomerDetail>('get_customer', { name })
+export const saveCustomer = (input: CustomerInput) => adminWrite<CustomerDetail>('save_customer', input)
+
+export const listItems = (search?: string, includeDisabled = false) =>
+  adminRead<ItemSummary[]>('list_items', { search, include_disabled: Number(includeDisabled) })
+export const getItem = (name: string) => adminRead<ItemDetail>('get_item', { name })
+export const saveItem = (input: ItemInput) => adminWrite<ItemDetail>('save_item', input)
+
+export const listLocations = () => adminRead<LocationRow[]>('list_locations')
+export const saveLocation = (input: LocationInput) => adminWrite<LocationRow>('save_location', input)
+
+export const deleteRecord = (doctype: 'Customer' | 'Item' | 'Warehouse', name: string) =>
+  adminWrite<{ deleted: boolean }>('delete_record', { doctype, name })
+
+export const listOrders = (search?: string, status?: string) => adminRead<OrderSummary[]>('list_orders', { search, status })
+export const getOrder = (name: string) => adminRead<OrderDetail>('get_order', { name })
+export const cancelOrder = (salesOrder: string, modified?: string) =>
+  adminWrite<OrderDetail>('cancel_order', { sales_order: salesOrder, modified })
+export const amendOrder = (input: AmendOrderInput) => adminWrite<OrderDetail>('amend_order', input)

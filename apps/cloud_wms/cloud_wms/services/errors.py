@@ -61,6 +61,8 @@ def from_exception(exc):
 		return NotFound(str(exc) or "The requested record does not exist.")
 	if isinstance(exc, frappe.DuplicateEntryError):
 		return Conflict("A record with the same identity already exists.", code="DUPLICATE")
+	if isinstance(exc, frappe.UniqueValidationError):
+		return Conflict(_message_log_text() or "A field that must be unique is already in use.", code="DUPLICATE")
 	if isinstance(exc, frappe.ValidationError):
 		return ValidationFailed(_message_log_text() or str(exc) or "Validation failed.")
 	return None
