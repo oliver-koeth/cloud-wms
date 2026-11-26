@@ -2,6 +2,7 @@ import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import add_days, nowdate
 
+from cloud_wms.api import admin as admin_api
 from cloud_wms.api import dispatch as dispatch_api
 from cloud_wms.api import tasks as api
 from cloud_wms.services import tasks as service
@@ -14,6 +15,7 @@ OTHER_PICKER = "wms-t3-picker2@example.com"
 SUPERVISOR = "wms-t3-supervisor@example.com"
 INTAKE = "wms-t3-intake@example.com"
 DISPATCHER = "wms-t3-dispatch@example.com"
+ADMIN = "wms-t3-admin@example.com"
 BIN_A = f"WMS T3 Bin A - {TEST_ABBR}"
 BIN_B = f"WMS T3 Bin B - {TEST_ABBR}"
 BARCODE_A = "T3-LOC-A"
@@ -73,6 +75,7 @@ class TestTasks(IntegrationTestCase):
 			(SUPERVISOR, ("WMS Supervisor", "WMS Picker")),
 			(INTAKE, ("Sales User", "WMS Intake")),
 			(DISPATCHER, ("WMS Dispatch",)),
+			(ADMIN, ("WMS Admin",)),
 		):
 			ensure_user(email, roles)
 		cls.bin_a = _ensure_warehouse("WMS T3 Bin A", BARCODE_A)
@@ -98,19 +101,22 @@ class TestTasks(IntegrationTestCase):
 		frappe.set_user("Administrator")
 		orders = frappe.get_all("Sales Order", filters={"cloud_wms_source": SOURCE}, pluck="name")
 		for order in orders:
-			for row in service.pick_lists_for_order(order):
+			# Includes cancelled Pick Lists, which pick_lists_for_order leaves out.
+			for name in frappe.get_all(
+				"Pick List Item", filters={"sales_order": order, "parenttype": "Pick List"}, pluck="parent", distinct=True
+			):
 				for note in frappe.get_all(
-					"Delivery Note Item", filters={"against_pick_list": row.name}, pluck="parent", distinct=True
+					"Delivery Note Item", filters={"against_pick_list": name}, pluck="parent", distinct=True
 				):
 					doc = frappe.get_doc("Delivery Note", note)
 					if doc.docstatus == 1:
 						doc.cancel()
 					frappe.delete_doc("Delivery Note", note, force=True)
-				pick = frappe.get_doc("Pick List", row.name)
+				pick = frappe.get_doc("Pick List", name)
 				if pick.docstatus == 1:
 					pick.cancel_stock_reservation_entries(notify=False)
 					pick.cancel()
-				frappe.delete_doc("Pick List", row.name, force=True)
+				frappe.delete_doc("Pick List", name, force=True)
 			so = frappe.get_doc("Sales Order", order)
 			if so.docstatus == 1:
 				so.cancel()
@@ -416,6 +422,73 @@ class TestTasks(IntegrationTestCase):
 		self.assertEqual(claimable[order]["remaining_qty"], 2)
 		again = self.claim(order)
 		self.assertEqual(again["lines"][0]["requested_qty"], 2)
+
+
+	# Admin screen 7: Pick List and Delivery Note exception handling
+
+	def read(self, fn, user=SUPERVISOR, **kwargs):
+		frappe.set_user(user)
+		return self.ok(fn(**kwargs))
+
+	def test_a_wrong_dispatch_is_reversed_delivery_note_first(self):
+		order = self.order()
+		pick, _ = self.submitted_pick(order)
+		note = self.ok(self.dispatch(pick))["delivery_note"]["name"]
+		after_dispatch = self.bin_qty(self.bin_a)
+
+		detail = self.read(admin_api.get_pick_list, name=pick)
+		self.assertEqual(detail["delivery_notes"][0]["name"], note)
+		self.assertIn("Cancel the Delivery Note first", detail["cancel_blocker"]["next_action"])
+		self.err(self.call(admin_api.cancel_pick_list, user=SUPERVISOR, pick_list=pick), "IN_USE")
+
+		self.assertEqual([row["name"] for row in self.read(admin_api.list_delivery_notes, search=order)], [note])
+		dn = self.read(admin_api.get_delivery_note, name=note)
+		self.assertIsNone(dn["cancel_blocker"])
+		self.assertEqual((dn["sales_orders"], dn["pick_lists"]), ([order], [pick]))
+		self.err(
+			self.call(admin_api.cancel_delivery_note, user=SUPERVISOR, delivery_note=note, modified="2000-01-01"),
+			"STALE",
+		)
+		cancelled = self.ok(
+			self.call(admin_api.cancel_delivery_note, user=SUPERVISOR, delivery_note=note, reason="Wrong parcel")
+		)
+		self.assertEqual(cancelled["docstatus"], 2)
+		self.assertEqual(self.bin_qty(self.bin_a), after_dispatch + 3)
+		self.assertEqual(frappe.db.get_value("Sales Order", order, "per_delivered"), 0)
+		event = frappe.get_all(
+			"WMS Task Event",
+			filters={"event_type": "Delivery Cancelled", "delivery_note": note},
+			fields=["actor", "pick_list", "sales_order", "reason"],
+		)
+		self.assertEqual(event, [{"actor": SUPERVISOR, "pick_list": pick, "sales_order": order, "reason": "Wrong parcel"}])
+
+		self.assertIn(pick, [row["name"] for row in self.read(admin_api.list_pick_lists, user=ADMIN, search=order)])
+		detail = self.read(admin_api.get_pick_list, user=ADMIN, name=pick)
+		self.assertIsNone(detail["cancel_blocker"])
+		cancelled = self.ok(
+			self.call(admin_api.cancel_pick_list, user=ADMIN, pick_list=pick, modified=detail["modified"])
+		)
+		self.assertEqual((cancelled["docstatus"], cancelled["status"]), (2, "Cancelled"))
+		self.assertFalse(
+			frappe.db.exists("Stock Reservation Entry", {"voucher_no": order, "docstatus": 1, "status": ["!=", "Cancelled"]})
+		)
+		self.assertTrue(frappe.db.exists("WMS Task Event", {"event_type": "Task Cancelled", "pick_list": pick, "actor": ADMIN}))
+
+		frappe.set_user(PICKER)
+		claimable = {row["sales_order"]: row for row in self.ok(self.call(api.list_tasks))["claimable"]}
+		self.assertEqual(claimable[order]["remaining_qty"], 3)
+
+	def test_open_tasks_are_released_not_cancelled_and_roles_gate_the_documents(self):
+		task = self.claim(self.order())
+		pick = task["pick_list"]
+		blocker = self.read(admin_api.get_pick_list, name=pick)["cancel_blocker"]
+		self.assertIn("Release it", blocker["next_action"])
+		self.err(self.call(admin_api.cancel_pick_list, user=SUPERVISOR, pick_list=pick), "IN_USE")
+		for user in (PICKER, DISPATCHER):
+			frappe.set_user(user)
+			self.err(admin_api.list_pick_lists(), "FORBIDDEN")
+			self.err(self.call(admin_api.cancel_delivery_note, user=user, delivery_note="x"), "FORBIDDEN")
+		self.err(self.call(admin_api.cancel_delivery_note, user=SUPERVISOR, delivery_note="DN-NOPE"), "NOT_FOUND")
 
 
 def install_fields():

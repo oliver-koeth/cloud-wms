@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { Button } from 'frappe-ui'
 import { deleteRecord, getAdminOptions, listLocations, saveLocation } from '../lib/erpnext'
+import { labelsFor, printLabels } from '../lib/labels'
 import type { AdminOptions, LocationRow } from '../types'
 
 const blank = (parent = '') => ({ warehouse_name: '', parent_warehouse: parent, is_group: false, barcode: '', disabled: false, company: '' })
@@ -35,6 +36,14 @@ async function guard(action: () => Promise<void>, done = '') {
 }
 
 const reload = async () => { rows.value = await listLocations() }
+
+const labels = computed(() =>
+  current.value
+    ? labelsFor(rows.value, current.value)
+    : rows.value.filter((row) => !row.parent_warehouse).flatMap((root) => labelsFor(rows.value, root)),
+)
+
+const print = () => guard(async () => printLabels(labels.value))
 
 function fill(row?: LocationRow, parent = '') {
   current.value = row
@@ -82,7 +91,10 @@ onMounted(async () => {
   <section class="screen-grid">
     <div class="screen-header">
       <div><p class="eyebrow">Admin / Master data</p><h1>Locations</h1><p>ERPNext Warehouses as a tree. Groups are zones and aisles; bins hold stock and carry the barcode pickers scan.</p></div>
-      <Button class="primary-button" variant="solid" :disabled="busy" @click="fill()">New location</Button>
+      <div class="admin-actions">
+        <Button variant="outline" :disabled="busy || !labels.length" :title="labels.length ? '' : 'No enabled bins with a barcode here'" @click="print">Print {{ labels.length }} label{{ labels.length === 1 ? '' : 's' }}{{ current ? ` for ${current.warehouse_name}` : '' }}</Button>
+        <Button class="primary-button" variant="solid" :disabled="busy" @click="fill()">New location</Button>
+      </div>
     </div>
     <div class="admin-layout">
       <section class="surface-card admin-list">

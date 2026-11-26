@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { amendOrder, approveShortage, claimTask, confirmPick, dispatchTask, getRoles, ingestOrder, listCustomers, listTasks, login, saveLocation } from './erpnext'
+import { amendOrder, approveShortage, cancelPosting, claimTask, confirmPick, dispatchTask, getRoles, ingestOrder, listCustomers, listEvents, listTasks, login, saveLocation } from './erpnext'
 
 const input = {
   source: 'manual',
@@ -145,5 +145,28 @@ describe('admin calls', () => {
     await expect(saveLocation({ name: 'X', warehouse_name: 'X', is_group: 0, disabled: 0, modified: 'old' })).rejects.toThrow(
       'Warehouse X was changed by someone else. Reload it and apply your change again. (ref r1)',
     )
+  })
+})
+
+describe('admin operations', () => {
+  it('sends only the audit filters that are set', async () => {
+    const fetchMock = stubFetch(200, { message: { data: { events: [], event_types: [], limit: 200 }, correlation_id: 'c1' } })
+
+    await listEvents({ event_type: 'Delivery Cancelled', actor: '', sales_order: undefined, from_date: '2026-12-01' })
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/method/cloud_wms.api.admin.list_events?event_type=Delivery+Cancelled&from_date=2026-12-01')
+  })
+
+  it('cancels a stock posting by doctype and name with its modified stamp', async () => {
+    const fetchMock = stubFetch(200, { message: { data: { name: 'MAT-RECO-1' }, correlation_id: 'c1' } })
+
+    await cancelPosting({ doctype: 'Stock Reconciliation', name: 'MAT-RECO-1', modified: '2026-12-03 10:00:00' }, 'Wrong bin')
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+      doctype: 'Stock Reconciliation',
+      name: 'MAT-RECO-1',
+      modified: '2026-12-03 10:00:00',
+      reason: 'Wrong bin',
+    })
   })
 })

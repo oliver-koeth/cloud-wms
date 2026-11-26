@@ -435,22 +435,25 @@ Event types: `Order Received`, `Task Released`, `Task Claimed`,
 `Task Assigned`, `Task Released To Queue`, `Location Scanned`, `Item Scanned`,
 `Pick Confirmed`, `Short Pick`, `Short Pick Approved`, `Task Completed`,
 `Task Cancelled`, `Delivery Created`, `Delivery Submitted`,
-`Inventory Corrected`, `Order Cancelled`, `Order Amended`,
+`Delivery Cancelled`, `Inventory Corrected`, `Order Cancelled`, `Order Amended`,
 `Master Data Changed`.
 
 ## Roles and permissions
 
-| Role | Sales Order | Pick List | Stock Reservation Entry | Delivery Note |
-| --- | --- | --- | --- | --- |
-| WMS Intake | submit | – | – | – |
-| WMS Picker | read | submit, delete | submit | – |
-| WMS Dispatch | read | read | – | submit |
-| WMS Supervisor | read | cancel, delete | cancel | read |
-| WMS Admin | cancel, amend | – | – | – |
+| Role | Sales Order | Pick List | Stock Reservation Entry | Delivery Note | Stock Entry, Stock Reconciliation |
+| --- | --- | --- | --- | --- | --- |
+| WMS Intake | submit | – | – | – | – |
+| WMS Picker | read | submit, delete | submit | – | – |
+| WMS Dispatch | read | read | – | submit | – |
+| WMS Supervisor | read | cancel, delete | cancel | cancel | – |
+| WMS Admin | cancel, amend | cancel | cancel | cancel | cancel |
 
 `WMS Admin` also has create, write and delete on `Customer`, `Address`,
-`Contact`, `Item`, `Item Price` and `Warehouse`. It is the only role the
-`cloud_wms.api.admin` endpoints accept; System Manager passes every role check.
+`Contact`, `Item`, `Item Price` and `Warehouse`, and create and write on
+`Customer Group`, `Territory` and `Item Group`. The `cloud_wms.api.admin`
+endpoints accept only `WMS Admin`, except the Pick List and Delivery Note
+endpoints (screen 7), which also accept `WMS Supervisor`. System Manager passes
+every role check.
 
 The source is `apps/cloud_wms/cloud_wms/setup/permissions.py`. Endpoints check
 roles first. Where ERPNext needs reads outside this matrix (customer and tax
@@ -461,23 +464,22 @@ step as the system user.
 
 ## Admin screens
 
-The **Admin** section of the WMS UI (`A1`–`A4` in the sidebar) maintains the
+The **Admin** section of the WMS UI (`A1`–`A10` in the sidebar) maintains the
 data that warehouse admins would otherwise edit in ERPNext Desk. It is visible
-to `WMS Admin` and System Manager. The table also lists the screens worth adding
-later.
+to `WMS Admin` and System Manager; `WMS Supervisor` sees only screen 7.
 
 | # | Screen | Status | ERPNext doctypes | Operations | Notes and constraints |
 | --- | --- | --- | --- | --- | --- |
 | 1 | **Customers** | Implemented (A2) | `Customer`, `Address`, `Contact` (via `Dynamic Link`) | Create, read, update, disable, delete | Deletion fails once a customer is used on any transaction, so disable is the normal "delete". Customer Group and Territory are pick-lists. |
 | 2 | **Products** | Implemented (A3) | `Item`, `Item Barcode`, `Item Price` (Standard Selling), `Item Default` | Create, read, update, disable, delete | Barcodes are edited inline, because they are what pickers scan. `stock_uom` and `is_stock_item` cannot change once stock exists. |
-| 3 | **Locations** | Implemented (A4) | `Warehouse` (tree) | Create, read, update, disable, delete; move within the tree | Tree editor with a barcode field on bins. Label printing is not implemented yet. A group with children, or a bin with stock or ledger entries, cannot be deleted. |
+| 3 | **Locations** | Implemented (A4) | `Warehouse` (tree) | Create, read, update, disable, delete; move within the tree | Tree editor with a barcode field on bins. **Print labels** opens a browser print sheet of CODE128 labels for the selected bin, every bin under the selected group, or every bin. A group with children, or a bin with stock or ledger entries, cannot be deleted. |
 | 4 | **Sales Orders** | Implemented (A1) | `Sales Order`, `Sales Order Item` | Create (existing intake), read, cancel, amend | Submitted orders are immutable, so "Edit" means cancel and amend. Cancelling is blocked while a pick task is open or a Delivery Note is submitted, so those are handled first. Close and hold stay in Desk. |
-| 5 | **Stock & adjustments** | Proposed | `Bin` (read), `Stock Reconciliation`, `Stock Entry` (Material Receipt, Material Transfer) | Read on-hand by item × bin; post receipts, transfers and count corrections | This is the only way to change quantities, and it is never a direct edit of `Bin`. Each posting records an `Inventory Corrected` event. |
+| 5 | **Stock & adjustments** | Implemented (A5) | `Bin` (read), `Stock Reconciliation`, `Stock Entry` (Material Receipt, Material Transfer) | Read on-hand by item × bin; post receipts, transfers and count corrections; cancel a posting | This is the only way to change quantities, and it is never a direct edit of `Bin`. Each posting and cancellation records an `Inventory Corrected` event. Material Issue is not offered; a count correction covers write-offs. |
 | 6 | **Users & roles** | Stays in Desk | `User`, `Has Role` | Create, read, enable/disable, assign WMS roles | Lets a Supervisor or Admin assign WMS roles without Desk. Needs System Manager-level rights, so the endpoint should allow only the four WMS roles. |
-| 7 | **Pick Lists & Delivery Notes** | Proposed | `Pick List`, `Delivery Note` | Read; cancel (Supervisor) | Exception handling for wrong dispatches. Cancelling a Delivery Note reverses its stock ledger entries and the delivered quantities on the Sales Order and the Pick List. |
-| 8 | **Audit log** | Proposed | `WMS Task Event`, `WMS Request` | Read-only, with filters (order, task, user, date) | Events are immutable, so the screen has no edit or delete. |
-| 9 | **Reference lists** | Proposed | `Customer Group`, `Territory`, `Item Group`, `UOM`, `Price List` | Read, plus create for groups | Low priority. Seeded defaults are usually enough. |
-| 10 | **Settings** | Proposed | `Stock Settings` (reservation flags), `Company` (read) | Read; toggle stock reservation | Mostly Desk-only. Shown here as read-only so admins can see why picking behaves as it does. |
+| 7 | **Pick Lists & Delivery Notes** | Implemented (A7) | `Pick List`, `Delivery Note` | Read; cancel (Admin and Supervisor) | Exception handling for wrong dispatches. Cancelling a Delivery Note reverses its stock ledger entries and the delivered quantities on the Sales Order and the Pick List (`Delivery Cancelled`). Then cancelling the Pick List cancels its reservations and returns the order to the pick queue (`Task Cancelled`). Each blocker is shown with its next step: an open pick task is released, not cancelled; a submitted Delivery Note, Sales Invoice or return goes first; an order on hold or closed is reopened in Desk. |
+| 8 | **Audit log** | Implemented (A8) | `WMS Task Event` | Read-only, with filters (event type, user, Sales Order, Pick List, Delivery Note, correlation id, date range) | Events are immutable, so the screen has no edit or delete. Newest 200 matches; each event expands to its JSON details. `WMS Request` (idempotency replay records) is not shown. |
+| 9 | **Reference lists** | Implemented (A9) | `Customer Group`, `Territory`, `Item Group`, `UOM`, `Price List` | Read; create entries in the three trees | Rename, merge and delete stay in Desk. Each create records `Master Data Changed`. |
+| 10 | **Settings** | Implemented (A10) | `Stock Settings`, `Selling Settings`, `Company` | Read-only | Shows why picking behaves as it does. Values the WMS enforces (`enable_stock_reservation`, `auto_reserve_stock`) are flagged when they drift; `bench migrate` restores them. |
 
 Out of scope for now: suppliers and inbound flows (`Supplier`,
 `Purchase Order`, `Purchase Receipt`), invoicing and accounting.
@@ -491,9 +493,11 @@ The admin screens add **no new business doctypes**. Implemented:
    validation rules still apply.
 2. **`cloud_wms.api.admin`.** One whitelisted endpoint set per entity
    (`list_*`, `get_*`, `save_*`, plus `delete_record`, `cancel_order` and
-   `amend_order`), using `@wms_endpoint`. Every write is role-checked,
-   idempotent and audited as `Master Data Changed`, `Order Cancelled` or
-   `Order Amended`. Saves carry the record's `modified` value and fail with
+   `amend_order`, `post_stock`, `cancel_posting`, `cancel_pick_list`,
+   `cancel_delivery_note`, `create_reference`), using `@wms_endpoint`. Every
+   write is role-checked, idempotent and audited as `Master Data Changed`,
+   `Order Cancelled`, `Order Amended`, `Inventory Corrected`, `Task Cancelled`
+   or `Delivery Cancelled`. Saves carry the record's `modified` value and fail with
    `STALE` if someone else changed it. Duplicate barcodes fail with
    `DUPLICATE`, and deletes of linked records fail with `IN_USE` (disable
    instead). A generic "save any doctype" endpoint is deliberately excluded.
@@ -515,5 +519,10 @@ Still proposed, both optional:
   Cancelling is refused while a pick task is open or a Delivery Note is
   submitted.
 - **Users & roles stay in ERPNext Desk**, because they need elevated rights.
-- Open: whether location labels are printed from the browser (HTML print) or
-  through an ERPNext print format. Label printing is not implemented yet.
+- **Supervisors can cancel** Pick Lists and Delivery Notes (screen 7), because
+  reversing a wrong dispatch is an operational exception, not master data.
+- **Stock changes** are receipts, transfers and counts only. Material Issue is
+  left out; a count correction records write-offs with a reason.
+- **Settings are read-only** in the WMS UI; they change in Desk.
+- **Location labels print from the browser** (HTML print with CODE128 barcodes
+  rendered by JsBarcode), not through an ERPNext print format.
